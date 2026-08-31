@@ -22,7 +22,7 @@ class _BusVehicleScreenState extends State<BusVehicleScreen> {
   List<BusVehiculo> _filtrados = [];
   List<BusModelo> _modelos = [];
   List<BusTipoCombustible> _combustibles = [];
-  List<Map<String, dynamic>> _sucursales = [];
+  List<Map<String, dynamic>> _sedes = [];
 
   bool _cargando = true;
   String? _error;
@@ -48,22 +48,20 @@ class _BusVehicleScreenState extends State<BusVehicleScreen> {
       _error = null;
     });
     try {
-      // Disparamos peticiones asíncronas concurrentes para optimizar la red
       final results = await Future.wait([
         BusVehiculoService.getAll(),
         BusVehiculoService.getModelos(),
         BusVehiculoService.getCombustibles(),
-        BusVehiculoService.getSucursales(),
+        BusVehiculoService.getSedes(),
       ]);
 
-      // Guardián: Si el usuario cambió de pestaña mientras cargaba la API, detenemos el proceso.
       if (!mounted) return;
 
       setState(() {
         _vehiculos = results[0] as List<BusVehiculo>;
         _modelos = results[1] as List<BusModelo>;
         _combustibles = results[2] as List<BusTipoCombustible>;
-        _sucursales = results[3] as List<Map<String, dynamic>>;
+        _sedes = results[3] as List<Map<String, dynamic>>;
         _filtrados = _vehiculos;
       });
     } catch (e) {
@@ -103,7 +101,7 @@ class _BusVehicleScreenState extends State<BusVehicleScreen> {
         vehiculo: vehiculo,
         modelos: _modelos,
         combustibles: _combustibles,
-        sucursales: _sucursales,
+        sedes: _sedes,
       ),
     );
     if (result == null || !mounted) return;

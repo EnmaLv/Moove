@@ -7,15 +7,15 @@ import '../../services/api_service.dart';
 import '../../widgets/app_bar.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
-class MoviBusSplashScreen extends StatefulWidget {
+class MooveSplashScreen extends StatefulWidget {
   final AppThemeProvider themeProvider;
-  const MoviBusSplashScreen({super.key, required this.themeProvider});
+  const MooveSplashScreen({super.key, required this.themeProvider});
 
   @override
-  State<MoviBusSplashScreen> createState() => _MoviBusSplashScreenState();
+  State<MooveSplashScreen> createState() => _MooveSplashScreenState();
 }
 
-class _MoviBusSplashScreenState extends State<MoviBusSplashScreen>
+class _MooveSplashScreenState extends State<MooveSplashScreen>
     with TickerProviderStateMixin {
   // Paleta
   static const _red = Color(0xFFB71C1C);
@@ -303,7 +303,7 @@ class _MoviBusSplashScreenState extends State<MoviBusSplashScreen>
                         child: FadeTransition(
                           opacity: _textFade,
                           child: const Text(
-                            'MoviBus',
+                            'Moove',
                             style: TextStyle(
                               color: _white,
                               fontSize: 42,

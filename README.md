@@ -1,10 +1,10 @@
-# MoviBus - Gestión de Transporte Universitario Inteligente
+# Moove - Gestión de Transporte Universitario Inteligente
 
 [![Flutter](https://img.shields.io/badge/Platform-Flutter-blue?style=flat&logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Language-Dart-0175C2?style=flat&logo=dart)](https://dart.dev)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)](https://firebase.google.com)
 
-MoviBus es la aplicación móvil oficial del ecosistema SIGA, desarrollada en Flutter. Funciona como un sistema de movilidad institucional de alta precisión (estilo Uber institucional) que permite a los estudiantes rastrear rutas de autobuses en tiempo real, gestionar asistencias automáticas y optimizar la logística de transporte de la universidad.
+Moove es la aplicación móvil oficial del ecosistema SIGA, desarrollada en Flutter. Funciona como un sistema de movilidad institucional de alta precisión (estilo Uber institucional) que permite a los estudiantes rastrear rutas de autobuses en tiempo real, gestionar asistencias automáticas y optimizar la logística de transporte de la universidad.
 
 ---
 
@@ -34,10 +34,10 @@ Para levantar el proyecto móvil en tu entorno de desarrollo, asegúrate de tene
 
 ```bash
 # 1. Clonar el repositorio móvil
-git clone https://github.com/EnmaLv/MoviBus.git
+git clone https://github.com/EnmaLv/Moove.git
 
 # 2. Navegar al directorio del proyecto
-cd movibus
+cd Moove
 
 # 3. Limpiar la caché e instalar los paquetes/dependencias de Dart
 flutter clean

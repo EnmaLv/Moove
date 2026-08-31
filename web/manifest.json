@@ -1,11 +1,11 @@
 {
-    "name": "transporte_app",
-    "short_name": "transporte_app",
+    "name": "Moove",
+    "short_name": "Moove",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Sistema de movilidad institucional de alta precisión que permite a los estudiantes rastrear rutas de autobuses en tiempo real, gestionar asistencias automáticas y optimizar la logística de transporte de la universidad.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

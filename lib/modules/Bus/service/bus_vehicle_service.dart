@@ -9,7 +9,6 @@ class BusVehiculoService {
   static Future<List<BusVehiculo>> getAll() async {
     final res = await ApiService.get(_base);
     if (res['success'] == true) {
-      // Soporte blindado por si viene paginado por Laravel: data['data']
       final rawData = res['data'];
       final List items = (rawData is Map && rawData.containsKey('data')) 
           ? rawData['data'] as List 
@@ -20,7 +19,6 @@ class BusVehiculoService {
     throw Exception(res['message'] ?? 'Error al cargar vehículos.');
   }
 
-  // Métodos auxiliares para alimentar los Dropdowns del Formulario
   static Future<List<BusModelo>> getModelos() async {
     final res = await ApiService.get('/modelos?estado=1');
     if (res['success'] == true) {
@@ -37,15 +35,13 @@ class BusVehiculoService {
     throw Exception('Error al cargar catálogo de combustibles.');
   }
 
-  // Nota: Si tu endpoint de sucursales cambia, ajusta la ruta plana aquí
-  static Future<List<Map<String, dynamic>>> getSucursales() async {
+  static Future<List<Map<String, dynamic>>> getSedes() async {
     try {
-      final res = await ApiService.get('/sucursales');
+      final res = await ApiService.get('/sedes');
       if (res['success'] == true) {
         return List<Map<String, dynamic>>.from(res['data'] as List);
       }
     } catch (_) {
-      // Mock de respaldo por seguridad si aún no migraste la API de sucursales
       return [{'id': 1, 'nombre': 'Sede Central'}];
     }
     return [{'id': 1, 'nombre': 'Sede Central'}];

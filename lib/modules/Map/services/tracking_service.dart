@@ -36,7 +36,7 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 50, // Se dispara cada 50 metros
+      distanceFilter: 50,
     );
 
     _positionStream?.cancel();

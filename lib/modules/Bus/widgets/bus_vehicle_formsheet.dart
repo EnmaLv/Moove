@@ -7,14 +7,14 @@ class VehicleFormSheet extends StatefulWidget {
   final BusVehiculo? vehiculo;
   final List<BusModelo> modelos;
   final List<BusTipoCombustible> combustibles;
-  final List<Map<String, dynamic>> sucursales;
+  final List<Map<String, dynamic>> sedes;
 
   const VehicleFormSheet({
     super.key,
     this.vehiculo,
     required this.modelos,
     required this.combustibles,
-    required this.sucursales,
+    required this.sedes,
   });
 
   @override
@@ -25,7 +25,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
   static const _red = Color(0xFFB71C1C);
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores de Texto
   late TextEditingController _placaCtrl;
   late TextEditingController _anioCtrl;
   late TextEditingController _colorCtrl;
@@ -36,10 +35,9 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
   late TextEditingController _kmCtrl;
   late TextEditingController _kmMaintCtrl;
 
-  // Variables de Selección
   BusModelo? _modeloSel;
   BusTipoCombustible? _combustibleSel;
-  int? _sucursalSelId;
+  int? _sedeSelId;
   String? _estadoSel;
 
   bool get _esEditar => widget.vehiculo != null;
@@ -74,12 +72,12 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
       _combustibleSel = widget.combustibles
           .where((c) => c.id == v!.tipoCombustibleId)
           .firstOrNull;
-      _sucursalSelId = v!.sucursalId;
+      _sedeSelId = v!.sedeId;
       _estadoSel = v.estado;
     } else {
       _estadoSel = 'disponible';
-      if (widget.sucursales.isNotEmpty) {
-        _sucursalSelId = widget.sucursales.first['id'] as int;
+      if (widget.sedes.isNotEmpty) {
+        _sedeSelId = widget.sedes.first['id'] as int;
       }
     }
   }
@@ -102,7 +100,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
     if (!_formKey.currentState!.validate() ||
         _modeloSel == null ||
         _combustibleSel == null ||
-        _sucursalSelId == null) {
+        _sedeSelId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, rellene todos los campos obligatorios.'),
@@ -123,7 +121,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
       'consumo_litros_km': double.parse(_consumoCtrl.text),
       'km_actual': double.parse(_kmCtrl.text),
       'km_proximo_mantenimiento': double.parse(_kmMaintCtrl.text),
-      'sucursal_id': _sucursalSelId,
+      'sede_id': _sedeSelId,
       'estado': _estadoSel,
     });
   }
@@ -184,7 +182,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    // --- SECCIÓN 1: IDENTIFICACIÓN ---
                     _buildSectionTitle('Identificación Básica'),
                     Row(
                       children: [
@@ -247,7 +244,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<BusModelo>(
                       value:
-                          _modeloSel, // Corregido: value en vez de initialValue
+                          _modeloSel,
                       hint: const Text('Seleccione Modelo'),
                       decoration: _deco(
                         'Modelo de Vehículo',
@@ -265,11 +262,10 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
 
                     const SizedBox(height: 20),
-                    // --- SECCIÓN 2: MECÁNICA Y RENDIMIENTO ---
                     _buildSectionTitle('Combustible y Rendimiento'),
                     DropdownButtonFormField<BusTipoCombustible>(
                       value:
-                          _combustibleSel, // Corregido: value en vez de initialValue
+                          _combustibleSel,
                       hint: const Text('Tipo de Combustible'),
                       decoration: _deco(
                         'Combustible',
@@ -329,7 +325,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
 
                     const SizedBox(height: 20),
-                    // --- SECCIÓN 3: CONTROL DE ODÓMETRO Y UBICACIÓN ---
                     _buildSectionTitle('Odómetro y Asignación'),
                     Row(
                       children: [
@@ -359,15 +354,14 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
                     const SizedBox(height: 12),
 
-                    // --- REDISEÑO: SELECTORES UNO DEBAJO DEL OTRO ---
                     DropdownButtonFormField<int>(
                       value:
-                          _sucursalSelId, // Corregido: value en vez de initialValue
+                          _sedeSelId,
                       decoration: _deco(
-                        'Sucursal / Sede',
+                        'Sede',
                         Icons.business_outlined,
                       ),
-                      items: widget.sucursales
+                      items: widget.sedes
                           .map(
                             (s) => DropdownMenuItem(
                               value: s['id'] as int,
@@ -375,12 +369,12 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                             ),
                           )
                           .toList(),
-                      onChanged: (id) => setState(() => _sucursalSelId = id),
+                      onChanged: (id) => setState(() => _sedeSelId = id),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value:
-                          _estadoSel, // Corregido: value en vez de initialValue
+                          _estadoSel,
                       decoration: _deco(
                         'Estado Inicial',
                         Icons.traffic_outlined,
@@ -403,7 +397,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
                     const SizedBox(height: 24),
 
-                    // --- BOTONES DE ACCIÓN ---
                     Row(
                       children: [
                         Expanded(

@@ -1,4 +1,4 @@
-name: movibus
+name: moove
 description: "Una aplicación móvil para la gestión de transporte público institucional, que permite a los usuarios consultar horarios y rutas de autobuses en tiempo real."
 publish_to: "none"
 version: 1.0.0+1
@@ -26,20 +26,23 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  change_app_package_name: ^1.5.0
 
 flutter_launcher_icons:
   android: true
-  ios: false
-  image_path: "assets/IconoTransporte.png"
+  ios: true
+  image_path: "assets/MooveV3.png"
+  adaptive_icon_background: "assets/MooveV3_background.png"
+  adaptive_icon_foreground: "assets/MooveV3_foreground.png"
 
 flutter:
   uses-material-design: true
 
 flutter_native_splash:
-  color: "#B71C1C"
-  image: assets/logo.png
+  color: "#E20000"
+  image: assets/MooveV3_foreground.png
   fullscreen: true
 
   android_12:
-    color: "#B71C1C"
-    image: assets/logo.png
+    color: "#E20000"
+    image: assets/MooveV3_foreground.png

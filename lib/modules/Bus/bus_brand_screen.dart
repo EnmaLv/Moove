@@ -5,7 +5,7 @@ import 'model/bus_brand_model.dart';
 import 'widgets/bus_brand_stats_bar.dart';
 import 'widgets/bus_brand_card.dart';
 import 'widgets/bus_brand_formsheet.dart';
-import 'package:movibus/services/catalog_signal.dart';
+import 'package:moove/services/catalog_signal.dart';
 
 class BusMarcaScreen extends StatefulWidget {
   const BusMarcaScreen({super.key});

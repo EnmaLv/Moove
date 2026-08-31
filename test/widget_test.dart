@@ -8,8 +8,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:movibus/main.dart';
-import 'package:movibus/widgets/app_bar.dart';
+import 'package:moove/main.dart';
+import 'package:moove/widgets/app_bar.dart';
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

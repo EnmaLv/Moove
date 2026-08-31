@@ -43,7 +43,7 @@ class _BusAppState extends State<BusApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'UPTP Bienestar',
+      title: 'Moove',
       themeMode: widget.themeProvider.themeMode,
       theme: ThemeData(
         brightness: Brightness.light,
@@ -64,7 +64,7 @@ class _BusAppState extends State<BusApp> {
         scaffoldBackgroundColor: const Color(0xFF121212),
         useMaterial3: true,
       ),
-      home: MoviBusSplashScreen(themeProvider: widget.themeProvider),
+      home: MooveSplashScreen(themeProvider: widget.themeProvider),
     );
   }
 }

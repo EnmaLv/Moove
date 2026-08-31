@@ -15,8 +15,8 @@ class BusVehiculo {
   final double kmActual;
   final double kmProximoMantenimiento;
   final int? conductorId;
-  final int sucursalId;
-  final String sucursalNombre;
+  final int sedeId;
+  final String sedeNombre;
   final bool activo;
   final String estado;
 
@@ -37,14 +37,13 @@ class BusVehiculo {
     required this.kmActual,
     required this.kmProximoMantenimiento,
     this.conductorId,
-    required this.sucursalId,
-    required this.sucursalNombre,
+    required this.sedeId,
+    required this.sedeNombre,
     required this.activo,
     required this.estado,
   });
 
   factory BusVehiculo.fromJson(Map<String, dynamic> j) {
-    // Auxiliares internos para parsear números de manera 100% segura
     double toDouble(dynamic val) {
       if (val == null) return 0.0;
       if (val is num) return val.toDouble();
@@ -80,8 +79,8 @@ class BusVehiculo {
       kmActual: toDouble(j['km_actual']),
       kmProximoMantenimiento: toDouble(j['km_proximo_mantenimiento']),
       conductorId: j['conductor_id'] != null ? toInt(j['conductor_id']) : null,
-      sucursalId: toInt(j['sucursal_id']),
-      sucursalNombre: j['sucursal']?['nombre'] as String? ?? 'Matriz',
+      sedeId: toInt(j['sede_id']),
+      sedeNombre: j['sede']?['nombre'] as String? ?? 'Matriz',
       activo: j['activo'] == true || j['activo'] == 1,
       estado: j['estado'] as String? ?? 'disponible',
     );
@@ -102,8 +101,8 @@ class BusVehiculo {
     double? consumoLitrosKm,
     double? kmActual,
     double? kmProximoMantenimiento,
-    int? sucursalId,
-    String? sucursalNombre,
+    int? sedeId,
+    String? sedeNombre,
     bool? activo,
     String? estado,
   }) {
@@ -126,8 +125,8 @@ class BusVehiculo {
       kmProximoMantenimiento:
           kmProximoMantenimiento ?? this.kmProximoMantenimiento,
       conductorId: conductorId,
-      sucursalId: sucursalId ?? this.sucursalId,
-      sucursalNombre: sucursalNombre ?? this.sucursalNombre,
+      sedeId: sedeId ?? this.sedeId,
+      sedeNombre: sedeNombre ?? this.sedeNombre,
       activo: activo ?? this.activo,
       estado: estado ?? this.estado,
     );

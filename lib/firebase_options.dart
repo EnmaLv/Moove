@@ -63,6 +63,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '692788093576',
     projectId: 'movibus-uptp',
     storageBucket: 'movibus-uptp.firebasestorage.app',
-    iosBundleId: 'com.example.transporteApp',
+    iosBundleId: 'com.uptp.moove',
   );
 }

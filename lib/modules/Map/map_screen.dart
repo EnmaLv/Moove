@@ -39,7 +39,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   final MapController _mapController = MapController();
   final TrackingService _trackingService = TrackingService();
 
-  // Suscripción a Cloud Firestore
   StreamSubscription<QuerySnapshot>? _firestoreSubscription;
   Map<String, BusEnMapa> _busesActivosFirebase = {};
 
@@ -54,7 +53,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   LatLng? _miUbicacion;
   LatLng _centroInicial = const LatLng(9.546987, -69.192543);
 
-  // Paradas dinámicas obtenidas desde Laravel
   List<Map<String, dynamic>> _paradasRuta = [];
   LatLng? _destinoFinalReal;
 
@@ -80,11 +78,9 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Detectar cambios en el ciclo de vida de la aplicación
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.detached) {
-      // Si el SO fuerza el cierre de la app, intentamos detener el tracking
       if (_trackingActivo && _viajeIdActivo != null) {
         _trackingService.detenerTracking(_viajeIdActivo);
       }
@@ -104,7 +100,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           for (var doc in snapshot.docs) {
             final data = doc.data();
 
-            // Descartar buses inactivos por más de 3 minutos (Buses Fantasma)
             final Timestamp? ultimaAct =
                 data['ultima_actualizacion'] as Timestamp?;
             if (ultimaAct != null) {
@@ -129,12 +124,10 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       setState(() {
         _mapaListo = true;
       });
-      // Verificación automática de viaje activo al iniciar
       await _verificarYRestaurarViajeActivo();
     }
   }
 
-  /// Verifica en Laravel si hay un viaje 'en_curso' y recupera el mapa y la transmisión
   Future<void> _verificarYRestaurarViajeActivo() async {
     try {
       final responseActive = await ApiService.get('/mi-viaje-activo');
@@ -250,7 +243,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     if (!mounted) return;
     final nuevosMarkers = <Marker>[];
 
-    // 1. Renderizar paradas como CÍRCULOS NUMERADOS con acción al pulsar
     for (int i = 0; i < _paradasRuta.length; i++) {
       final parada = _paradasRuta[i];
       final lat = double.tryParse(
@@ -300,7 +292,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       }
     }
 
-    // 2. Renderizar otros buses activos de Firestore
     _busesActivosFirebase.forEach((id, bus) {
       if (id == _viajeIdActivo) return;
 
@@ -334,7 +325,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       );
     });
 
-    // 3. Renderizar mi propio bus con su placa
     if (_miUbicacion != null) {
       nuevosMarkers.add(
         Marker(
@@ -350,7 +340,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     if (_trackingActivo && _rutaCalles.isNotEmpty) {
       final total = _rutaCalles.length;
 
-      // Ruta completa (sombreada)
       nuevasPolylines.add(
         Polyline(
           points: _rutaCalles,
@@ -359,7 +348,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
         ),
       );
 
-      // Tramo recorrido (rojo intenso)
       if (_indicePuntoActual > 0) {
         nuevasPolylines.add(
           Polyline(
@@ -457,7 +445,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     }
   }
 
-  /// Procesa los datos del viaje, traza la ruta OSRM e inicia el tracking GPS
   Future<void> _procesarEIniciarRuta(
     Map<String, dynamic> viajeData, {
     required bool esRestauracion,
@@ -475,8 +462,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
         paradasCargadas.add(p);
       }
     }
-
-    // Notificar a Laravel solo si no estaba 'en_curso'
     if (estadoActual == 'programado' && !esRestauracion) {
       await ApiService.post('/viajes/$viajeId/iniciar', {});
     }
@@ -538,7 +523,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       }
     }
 
-    // Iniciar transmisión continua del GPS
     _trackingService.iniciarTracking(
       viajeId: viajeId,
       placa: placa,
@@ -632,7 +616,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _actualizarElementosVisualesDelMapa();
   }
 
-  /// Cierre de sesión limpio deteniendo la señal GPS previamente
   Future<void> _cerrarSesionSegura() async {
     if (_trackingActivo && _viajeIdActivo != null) {
       final confirmar = await showDialog<bool>(
@@ -660,8 +643,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       );
 
       if (confirmar != true) return;
-
-      // Detener transmisión y borrar de Firestore antes de salir
       await _trackingService.detenerTracking(_viajeIdActivo);
     }
 
@@ -821,7 +802,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.transporte_app',
+              userAgentPackageName: 'com.uptp.moove',
               evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
             ),
             if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),

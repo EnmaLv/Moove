@@ -45,7 +45,6 @@ class VehicleCard extends StatelessWidget {
     }
   }
 
-  // --- MODAL DETALLADO DE FICHA TÉCNICA ---
   void _mostrarDetalles(BuildContext context) {
     final sheetBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final estadoColor = _obtenerColorEstado();
@@ -65,7 +64,6 @@ class VehicleCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle superior
               Center(
                 child: Container(
                   width: 40,
@@ -78,7 +76,6 @@ class VehicleCard extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Cabecera del Modal
               Row(
                 children: [
                   Container(
@@ -141,7 +138,6 @@ class VehicleCard extends StatelessWidget {
               const Divider(),
               const SizedBox(height: 10),
 
-              // --- GRID DE ESPECIFICACIONES TÉCNICAS ---
               _buildDetailRow(
                 Icons.directions_car_outlined,
                 'Marca y Modelo',
@@ -194,8 +190,8 @@ class VehicleCard extends StatelessWidget {
               ),
               _buildDetailRow(
                 Icons.business_outlined,
-                'Sucursal asignada',
-                vehiculo.sucursalNombre,
+                'Sede asignada',
+                vehiculo.sedeNombre,
               ),
 
               const SizedBox(height: 20),
@@ -265,11 +261,11 @@ class VehicleCard extends StatelessWidget {
       child: Material(
         color: cardBg,
         clipBehavior: Clip
-            .antiAlias, // Hace que el "splash" respete las esquinas redondeadas
+            .antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
             14,
-          ), // El radio se queda únicamente aquí adentro
+          ),
           side: vehiculo.activo
               ? BorderSide.none
               : BorderSide(color: Colors.grey.withValues(alpha: 0.3)),

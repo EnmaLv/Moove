@@ -7,7 +7,7 @@ import 'widgets/bus_model_stats_bar.dart';
 import 'widgets/bus_model_card.dart';
 import 'widgets/bus_model_formsheet.dart';
 import 'widgets/bus_model_filter_chip.dart';
-import 'package:movibus/services/catalog_signal.dart';
+import 'package:moove/services/catalog_signal.dart';
 
 class BusModeloScreen extends StatefulWidget {
   const BusModeloScreen({super.key});

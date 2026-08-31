@@ -5,7 +5,7 @@ import 'model/bus_fuel_type_model.dart';
 import 'widgets/bus_fuel_type_stats_bar.dart';
 import 'widgets/bus_fuel_type_card.dart';
 import 'widgets/bus_fuel_type_formsheet.dart';
-import 'package:movibus/services/catalog_signal.dart';
+import 'package:moove/services/catalog_signal.dart';
 
 class BusFuelTypeScreen extends StatefulWidget {
   const BusFuelTypeScreen({super.key});
