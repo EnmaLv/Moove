@@ -47,9 +47,9 @@ flutter:
 
 flutter_native_splash:
   color: "#E20000"
-  image: assets/MooveV3_foreground.png
+  image: assets/MooveV3.svg
   fullscreen: true
 
   android_12:
     color: "#E20000"
-    image: assets/MooveV3_foreground.png
+    image: assets/MooveV3.svg
