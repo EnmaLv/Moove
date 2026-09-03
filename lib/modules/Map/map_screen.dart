@@ -15,6 +15,8 @@ import '../../widgets/top_overlay.dart';
 import '../../widgets/start_route_button.dart';
 import 'services/osrm_streets.dart';
 import 'services/tracking_service.dart';
+import 'services/heading_helper.dart';
+import 'widgets/mi_bus_marker_layer.dart';
 
 class MoviMap extends StatefulWidget {
   final Map<String, dynamic> usuario;
@@ -49,8 +51,14 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   bool _trackingActivo = false;
   bool _cargandoRuta = false;
   String? _viajeIdActivo;
-  String _miPlaca = 'S/N';
   LatLng? _miUbicacion;
+  static const double _velocidadMinimaParaRotar = 0.6;
+  final ValueNotifier<MiBusEstado> _miBusNotifier = ValueNotifier(
+    const MiBusEstado(),
+  );
+  Timer? _watchdogSenal;
+  static const _timeoutSenal = Duration(seconds: 20);
+
   LatLng _centroInicial = const LatLng(9.546987, -69.192543);
 
   List<Map<String, dynamic>> _paradasRuta = [];
@@ -74,6 +82,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _firestoreSubscription?.cancel();
     _trackingService.detenerTracking(_viajeIdActivo);
+    _watchdogSenal?.cancel();
+    _miBusNotifier.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -161,7 +171,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           return LatLng(lastPosition.latitude, lastPosition.longitude);
         }
       } catch (_) {}
-
       if (_miUbicacion != null) return _miUbicacion;
       return null;
     }
@@ -187,6 +196,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           _miUbicacion = posLatLng;
           _centroInicial = posLatLng;
         });
+        _actualizarMiBusEstado(posicion: posLatLng, activo: false);
         _mapController.move(posLatLng, 15.0);
       }
     } catch (e) {
@@ -325,17 +335,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       );
     });
 
-    if (_miUbicacion != null) {
-      nuevosMarkers.add(
-        Marker(
-          point: _miUbicacion!,
-          width: 90,
-          height: 65,
-          child: _buildMiBusMarkerWidget(),
-        ),
-      );
-    }
-
     final nuevasPolylines = <Polyline>[];
     if (_trackingActivo && _rutaCalles.isNotEmpty) {
       final total = _rutaCalles.length;
@@ -365,41 +364,32 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     });
   }
 
-  Widget _buildMiBusMarkerWidget() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: _trackingActivo ? Colors.green.shade800 : _red,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 3,
-                offset: Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Text(
-            _miPlaca,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Icon(
-          Icons.directions_bus_filled,
-          color: _trackingActivo ? Colors.green : _red,
-          size: 32,
-        ),
-      ],
+  void _actualizarMiBusEstado({
+    LatLng? posicion,
+    double? rumbo,
+    bool? activo,
+    bool? senalPerdida,
+    String? placa,
+  }) {
+    _miBusNotifier.value = _miBusNotifier.value.copyWith(
+      posicion: posicion,
+      rumbo: rumbo,
+      activo: activo,
+      senalPerdida: senalPerdida,
+      placa: placa,
     );
+  }
+
+  void _iniciarWatchdogSenal() {
+    _watchdogSenal?.cancel();
+    _watchdogSenal = Timer.periodic(const Duration(seconds: 5), (_) {
+      final ultima = _trackingService.ultimaActualizacion;
+      if (ultima == null) return;
+      final sinSenal = DateTime.now().difference(ultima) > _timeoutSenal;
+      if (sinSenal != _miBusNotifier.value.senalPerdida) {
+        _actualizarMiBusEstado(senalPerdida: sinSenal);
+      }
+    });
   }
 
   Future<void> _iniciarRuta() async {
@@ -501,7 +491,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     if (!mounted) return;
 
     _viajeIdActivo = viajeId;
-    _miPlaca = placa;
     _paradasRuta = paradasCargadas;
     _destinoFinalReal = destinoFinal;
     _rutaCalles = puntos;
@@ -509,6 +498,14 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _miUbicacion = origen;
     _indicePuntoActual = 0;
     _cargandoRuta = false;
+
+    _actualizarMiBusEstado(
+      posicion: origen,
+      activo: true,
+      senalPerdida: false,
+      placa: placa,
+    );
+    _iniciarWatchdogSenal();
 
     _actualizarElementosVisualesDelMapa();
 
@@ -532,9 +529,25 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
         if (!mounted) return;
         final nuevaPos = LatLng(pos.latitude, pos.longitude);
 
+        double? nuevoRumbo;
+        if (pos.speed >= _velocidadMinimaParaRotar) {
+          if (pos.headingAccuracy >= 0 && pos.headingAccuracy <= 60) {
+            nuevoRumbo = pos.heading;
+          } else if (_miUbicacion != null) {
+            nuevoRumbo = calcularBearing(_miUbicacion!, nuevaPos);
+          }
+        }
+
         _miUbicacion = nuevaPos;
         _indicePuntoActual = _puntoMasCercano(nuevaPos);
 
+        _actualizarMiBusEstado(
+          posicion: nuevaPos,
+          rumbo: nuevoRumbo,
+          senalPerdida: false,
+        );
+
+        // Esto sigue igual: recalcula polylines (necesario, cambia con cada punto)
         _actualizarElementosVisualesDelMapa();
         _mapController.move(nuevaPos, _mapController.camera.zoom);
 
@@ -587,6 +600,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _paradasRuta = [];
     _indicePuntoActual = 0;
     _viajeIdActivo = null;
+    _watchdogSenal?.cancel();
+    _actualizarMiBusEstado(activo: false, senalPerdida: false);
 
     _actualizarElementosVisualesDelMapa();
 
@@ -613,6 +628,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _rutaCalles = [];
     _paradasRuta = [];
     _viajeIdActivo = null;
+    _watchdogSenal?.cancel();
+    _actualizarMiBusEstado(activo: false, senalPerdida: false);
     _actualizarElementosVisualesDelMapa();
   }
 
@@ -807,6 +824,12 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
             ),
             if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),
             MarkerLayer(markers: _markers),
+            MiBusMarkerLayer(
+              // ← AGREGAR ESTO
+              notifier: _miBusNotifier,
+              colorActivo: Colors.green.shade800,
+              colorInactivo: _red,
+            ),
           ],
         ),
         if (_cargandoRuta)

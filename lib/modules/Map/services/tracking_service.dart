@@ -6,6 +6,9 @@ import '/../services/api_service.dart';
 
 class TrackingService {
   StreamSubscription<Position>? _positionStream;
+  DateTime? _ultimaActualizacion;
+  DateTime? get ultimaActualizacion => _ultimaActualizacion;
+
   final CollectionReference _busesRef =
       FirebaseFirestore.instance.collection('buses_activos');
 
@@ -36,13 +39,15 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 50,
+      distanceFilter: 1,
     );
 
     _positionStream?.cancel();
+    _ultimaActualizacion = DateTime.now();
     _positionStream = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((Position position) async {
+      _ultimaActualizacion = DateTime.now();
       onPositionChanged(position);
 
       _busesRef.doc(viajeId).set({
@@ -76,6 +81,7 @@ class TrackingService {
   Future<void> detenerTracking(String? viajeId) async {
     await _positionStream?.cancel();
     _positionStream = null;
+    _ultimaActualizacion = null;
 
     if (viajeId != null && viajeId.isNotEmpty) {
       try {
