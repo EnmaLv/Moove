@@ -35,9 +35,6 @@ class MiBusEstado {
   }
 }
 
-/// Capa de marcador independiente para el bus del propio usuario.
-/// Se redibuja SOLO cuando cambia [notifier], sin afectar ni reconstruir
-/// la capa de paradas / otros buses de Firebase (que vive en otro MarkerLayer).
 class MiBusMarkerLayer extends StatelessWidget {
   final ValueNotifier<MiBusEstado> notifier;
   final Color colorActivo;
@@ -61,8 +58,8 @@ class MiBusMarkerLayer extends StatelessWidget {
           markers: [
             Marker(
               point: estado.posicion!,
-              width: 180,
-              height: 140,
+              width: 70,
+              height: 60,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -101,7 +98,7 @@ class MiBusMarkerLayer extends StatelessWidget {
                   const SizedBox(height: 2),
                   BusMarkerIcon(
                     heading: estado.rumbo,
-                    size: 120,
+                    size: 32,
                     activo: estado.activo,
                     senalPerdida: estado.senalPerdida,
                   ),

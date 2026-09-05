@@ -39,8 +39,17 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 1,
+      distanceFilter: 50,
     );
+
+    _busesRef.doc(viajeId).set({
+      'viaje_id': viajeId,
+      'placa': placa,
+      'ruta_nombre': rutaNombre,
+      'sede': sede,
+      'pasajeros': 0,
+      'ultima_actualizacion': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
     _positionStream?.cancel();
     _ultimaActualizacion = DateTime.now();
@@ -51,14 +60,10 @@ class TrackingService {
       onPositionChanged(position);
 
       _busesRef.doc(viajeId).set({
-        'viaje_id': viajeId,
-        'placa': placa,
-        'ruta_nombre': rutaNombre,
         'latitud': position.latitude,
         'longitud': position.longitude,
         'en_movimiento': position.speed > 0.5,
-        'pasajeros': 0,
-        'sede': sede,
+        'heading': position.heading,
         'ultima_actualizacion': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true)).catchError((error) {
         debugPrint("Error Firestore: $error");
@@ -90,6 +95,6 @@ class TrackingService {
       } catch (e) {
         debugPrint("Error al remover bus de Firestore: $e");
       }
-    }
+    } 
   }
 }

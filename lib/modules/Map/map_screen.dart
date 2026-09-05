@@ -16,7 +16,10 @@ import '../../widgets/start_route_button.dart';
 import 'services/osrm_streets.dart';
 import 'services/tracking_service.dart';
 import 'services/heading_helper.dart';
+import 'widgets/bus_marker_icon.dart';
 import 'widgets/mi_bus_marker_layer.dart';
+import 'services/asistencia_service.dart';
+import '../../services/notificaciones_service.dart';
 
 class MoviMap extends StatefulWidget {
   final Map<String, dynamic> usuario;
@@ -36,6 +39,10 @@ class MoviMap extends StatefulWidget {
 
 class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   static const _red = Color(0xFFB71C1C);
+
+  final AsistenciaService _asistenciaService = AsistenciaService();
+  StreamSubscription<Position>? _asistenciaPositionStream;
+  bool _dialogoAsistenciaAbierto = false;
 
   int _currentIndex = 0;
   final MapController _mapController = MapController();
@@ -85,6 +92,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _watchdogSenal?.cancel();
     _miBusNotifier.dispose();
     _mapController.dispose();
+    _asistenciaPositionStream?.cancel();
     super.dispose();
   }
 
@@ -135,6 +143,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
         _mapaListo = true;
       });
       await _verificarYRestaurarViajeActivo();
+      _iniciarMonitoreoAsistencia();
     }
   }
 
@@ -152,6 +161,104 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       }
     } catch (e) {
       debugPrint("Error al verificar viaje activo: $e");
+    }
+  }
+
+  void _iniciarMonitoreoAsistencia() {
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 3,
+    );
+
+    _asistenciaPositionStream?.cancel();
+    _asistenciaPositionStream = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(_chequearProximidadBus);
+  }
+
+  void _chequearProximidadBus(Position pos) async {
+    if (!mounted || _dialogoAsistenciaAbierto) return;
+
+    final miPos = LatLng(pos.latitude, pos.longitude);
+
+    final cercanos = _asistenciaService
+        .detectarBusesCercanos(miPos, _busesActivosFirebase)
+        .where((c) => c.viajeId != _viajeIdActivo)
+        .toList();
+
+    final candidatos = <BusCercano>[];
+    for (final c in cercanos) {
+      if (await _asistenciaService.puedeRegistrar(c.viajeId)) {
+        candidatos.add(c);
+      }
+    }
+
+    if (!mounted || candidatos.isEmpty) return;
+
+    if (candidatos.length == 1) {
+      _registrarAsistencia(candidatos.first);
+    } else {
+      _mostrarSelectorBusCercano(candidatos);
+    }
+  }
+
+  Future<void> _registrarAsistencia(BusCercano candidato) async {
+    await _asistenciaService.marcarRegistrado(candidato.viajeId);
+
+    try {
+      await ApiService.post('/asistencia/registrar', {
+        'bus_viaje_id': candidato.viajeId,
+        'metodo': 'proximidad',
+      });
+    } catch (e) {
+      debugPrint('Error registrando asistencia: $e');
+    }
+
+    if (!mounted) return;
+
+    await NotificacionesService.mostrarLocal(
+      titulo: 'Asistencia registrada',
+      cuerpo: 'Subiste al bus ${candidato.bus.placa}',
+    );
+  }
+
+  Future<void> _mostrarSelectorBusCercano(List<BusCercano> candidatos) async {
+    _dialogoAsistenciaAbierto = true;
+
+    final seleccionado = await showDialog<BusCercano>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿A cuál bus subiste?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: candidatos
+              .map(
+                (c) => ListTile(
+                  title: Text(c.bus.placa),
+                  subtitle: Text('${c.distanciaMetros.toStringAsFixed(0)} m'),
+                  onTap: () => Navigator.pop(ctx, c),
+                ),
+              )
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Ninguno'),
+          ),
+        ],
+      ),
+    );
+
+    _dialogoAsistenciaAbierto = false;
+
+    if (seleccionado != null) {
+      _registrarAsistencia(seleccionado);
+    } else {
+      for (final c in candidatos) {
+        await _asistenciaService.marcarRegistrado(c.viajeId);
+      }
     }
   }
 
@@ -308,7 +415,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       nuevosMarkers.add(
         Marker(
           point: bus.posicion,
-          width: 80,
+          width: 70,
           height: 60,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -328,7 +435,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              const Icon(Icons.directions_bus, color: Colors.blue, size: 28),
+              BusMarkerIcon(heading: 0, size: 32, activo: bus.enMovimiento),
             ],
           ),
         ),
@@ -633,6 +740,266 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _actualizarElementosVisualesDelMapa();
   }
 
+  void _mostrarDialogoCancelar() {
+    if (_viajeIdActivo == null) return;
+
+    final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool cargando = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFFF3F4F6),
+                ),
+              ),
+              titlePadding: const EdgeInsets.all(16),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              actionsPadding: const EdgeInsets.all(16),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF991B1B).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.block,
+                      color: Color(0xFF991B1B),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Cancelar Viaje',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                    ),
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Por favor, especifique el motivo por el cual se cancela este viaje. Esta información quedará registrada en el sistema.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'MOTIVO DE LA CANCELACIÓN *',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.grey[400] : Colors.grey[500],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: controller,
+                      maxLines: 3,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().length < 5) {
+                          return 'Debe ingresar al menos 5 caracteres.';
+                        }
+                        return null;
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Escriba aquí la razón detallada...',
+                        hintStyle: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: isDark
+                            ? const Color(0xFF111827)
+                            : const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.all(12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF374151)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF374151)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF991B1B),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(
+                            color: isDark
+                                ? const Color(0xFF374151)
+                                : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        onPressed: cargando
+                            ? null
+                            : () => Navigator.pop(dialogContext),
+                        child: Text(
+                          'Cancelar',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF991B1B),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: cargando
+                            ? null
+                            : () async {
+                                if (!formKey.currentState!.validate()) return;
+
+                                final scaffoldMessenger =
+                                    ScaffoldMessenger.maybeOf(context);
+                                final dialogNavigator = Navigator.of(
+                                  dialogContext,
+                                );
+
+                                setModalState(() => cargando = true);
+
+                                final response = await ApiService.post(
+                                  '/viajes/$_viajeIdActivo/cancelar',
+                                  {
+                                    'motivo_cancelacion': controller.text
+                                        .trim(),
+                                  },
+                                );
+
+                                setModalState(() => cargando = false);
+
+                                if (!mounted) return;
+
+                                if (dialogNavigator.canPop()) {
+                                  dialogNavigator.pop();
+                                }
+
+                                if (response['success'] == true) {
+                                  _cancelarRuta();
+                                  scaffoldMessenger?.showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'El viaje ha sido cancelado exitosamente.',
+                                      ),
+                                      backgroundColor: Color(0xFF991B1B),
+                                    ),
+                                  );
+                                } else {
+                                  scaffoldMessenger?.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response['message'] ??
+                                            'No se pudo cancelar el viaje.',
+                                      ),
+                                      backgroundColor: Colors.black87,
+                                    ),
+                                  );
+                                }
+                              },
+                        child: cargando
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.check,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Confirmar',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _cerrarSesionSegura() async {
     if (_trackingActivo && _viajeIdActivo != null) {
       final confirmar = await showDialog<bool>(
@@ -694,97 +1061,62 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     return mejor;
   }
 
-  bool get _esAdmin => widget.roles.any((r) {
-    final nombre = (r['nombre'] ?? '').toString().toLowerCase();
+  bool get _esGestion => widget.roles.any((r) {
     final slug = (r['slug'] ?? '').toString().toLowerCase();
-    return nombre == 'administrador' || slug == 'administrador';
+    return slug == 'jefe-transporte' || slug == 'administrador';
   });
+
+  bool get _esOperativo => widget.roles.any((r) {
+    final slug = (r['slug'] ?? '').toString().toLowerCase();
+    return slug == 'conductor' || slug == 'jefe-transporte' || slug == 'administrador';
+  });
+
+  bool get _puedeIniciarRuta => _esOperativo;
 
   String? get _rolNombre =>
       widget.roles.isEmpty ? null : widget.roles.first['nombre'] as String?;
 
-  List<NavItem> get _navItems => _esAdmin ? _adminItems : _conductorItems;
-
-  static const _conductorItems = [
-    NavItem(label: 'Mapa', icon: Icons.map_outlined, activeIcon: Icons.map),
-    NavItem(
-      label: 'Agenda',
-      icon: Icons.calendar_today_outlined,
-      activeIcon: Icons.calendar_today,
-    ),
-    NavItem(
-      label: 'Mi Viaje',
-      icon: Icons.directions_bus_outlined,
-      activeIcon: Icons.directions_bus,
-    ),
-  ];
-
-  static const _adminItems = [
-    NavItem(label: 'Mapa', icon: Icons.map_outlined, activeIcon: Icons.map),
-    NavItem(
-      label: 'Catalogo',
-      icon: Icons.directions_bus_outlined,
-      activeIcon: Icons.directions_bus,
-    ),
-    NavItem(
-      label: 'Rutas',
-      icon: Icons.route_outlined,
-      activeIcon: Icons.route,
-    ),
-    NavItem(
-      label: 'Agenda',
-      icon: Icons.calendar_today_outlined,
-      activeIcon: Icons.calendar_today,
-    ),
-    NavItem(
-      label: 'Conductores',
-      icon: Icons.people_outline,
-      activeIcon: Icons.people,
-    ),
-    NavItem(
-      label: 'Mant.',
-      icon: Icons.build_outlined,
-      activeIcon: Icons.build,
-    ),
-    NavItem(
-      label: 'Reportes',
-      icon: Icons.bar_chart_outlined,
-      activeIcon: Icons.bar_chart,
-    ),
-  ];
-
-  void _onNavTap(int index) {
-    if (index == 0) {
-      setState(() => _currentIndex = 0);
-      return;
+  List<NavItem> get _navItems {
+    final items = [
+      const NavItem(label: 'Mapa', icon: Icons.map_outlined, activeIcon: Icons.map),
+    ];
+    if (_esGestion) {
+      items.add(const NavItem(label: 'Catalogo', icon: Icons.directions_bus_outlined, activeIcon: Icons.directions_bus));
     }
-    if (_esAdmin) {
-      _abrirModuloAdmin(index);
-      return;
+    items.add(const NavItem(label: 'Viajes', icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today));
+    if (_esOperativo) {
+      items.add(const NavItem(label: 'Mant.', icon: Icons.build_outlined, activeIcon: Icons.build));
+      items.add(const NavItem(label: 'Asistencia', icon: Icons.qr_code_scanner_outlined, activeIcon: Icons.qr_code_scanner));
     }
-    setState(() => _currentIndex = index);
+    return items;
   }
 
-  void _abrirModuloAdmin(int index) {
-    Widget? destino;
-    switch (index) {
-      case 1:
-        destino = BusCatalogoScreen(themeProvider: widget.themeProvider);
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${_adminItems[index].label}: próximamente'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: _red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        );
-        return;
+  void _onNavTap(int index) {
+    final item = _navItems[index];
+
+    if (item.label == 'Mapa') {
+      setState(() => _currentIndex = index);
+      return;
     }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => destino!));
+
+    if (item.label == 'Catalogo') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BusCatalogoScreen(themeProvider: widget.themeProvider),
+        ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.label}: próximamente'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: _red,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   Widget _buildPage(int index) {
@@ -825,7 +1157,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
             if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),
             MarkerLayer(markers: _markers),
             MiBusMarkerLayer(
-              // ← AGREGAR ESTO
               notifier: _miBusNotifier,
               colorActivo: Colors.green.shade800,
               colorInactivo: _red,
@@ -857,8 +1188,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
             right: 16,
             bottom: 16,
             child: _trackingActivo
-                ? CancelarRutaButton(onTap: _cancelarRuta)
-                : IniciarRutaPanel(onReal: _iniciarRuta),
+                ? CancelarRutaButton(onTap: _mostrarDialogoCancelar)
+                : (_puedeIniciarRuta ? IniciarRutaPanel(onReal: _iniciarRuta) : const SizedBox.shrink()),
           ),
       ],
     );
@@ -878,7 +1209,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
               right: 16,
               child: TopOverlay(
                 usuario: widget.usuario,
-                esAdmin: _esAdmin,
+                esAdmin: _esGestion,
                 busesActivos:
                     _busesActivosFirebase.length + (_trackingActivo ? 1 : 0),
               ),

@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'modules/splash/splash_screen.dart';
 import 'widgets/app_bar.dart';
+import 'services/notificaciones_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
@@ -11,6 +12,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await NotificacionesService.inicializar();
 
   final themeProvider = AppThemeProvider();
   await themeProvider.loadPrefs();

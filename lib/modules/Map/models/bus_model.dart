@@ -34,7 +34,7 @@ class BusEnMapa {
     );
   }
 
-  factory BusEnMapa.fromJson(Map<String, dynamic> json) {
+  factory BusEnMapa.fromJson(Map<String, dynamic> json) { 
     final vehiculo = json['vehiculo'] ?? {};
     final ruta = json['bus_ruta'] ?? json['ruta'] ?? {};
     final lat = (json['latitud'] ?? 0.0) as num;

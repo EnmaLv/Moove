@@ -11,7 +11,7 @@ class BusMarkerIcon extends StatelessWidget {
   const BusMarkerIcon({
     super.key,
     required this.heading,
-    this.size = 2000,
+    this.size = 512,
     this.activo = true,
     this.senalPerdida = false,
     this.assetPath = 'assets/icons/Moove_Bus.svg',
