@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../modules/Map/models/bus_model.dart';
 import '../../services/api_service.dart';
 import '../Bus/bus_catalogo_screen.dart';
+import '../Bus/bus_viaje_screen.dart';
 import '../auth/login.dart';
 import '../../widgets/app_bar.dart';
 import '../../widgets/top_overlay.dart';
@@ -39,6 +40,8 @@ class MoviMap extends StatefulWidget {
 
 class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   static const _red = Color(0xFFB71C1C);
+  num _kmInicio = 0;
+  bool _dialogoFinalizarAbierto = false;
 
   final AsistenciaService _asistenciaService = AsistenciaService();
   StreamSubscription<Position>? _asistenciaPositionStream;
@@ -73,6 +76,9 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
   int _indicePuntoActual = 0;
   List<LatLng> _rutaCalles = [];
+
+  List<Map<String, dynamic>> _todasParadas = [];
+  LatLng? _miUbicacionActual;
 
   static const _radioLlegada = 50.0;
 
@@ -137,6 +143,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
   Future<void> _inicializarPantalla() async {
     await _obtenerUbicacionInicialUsuario();
+    await _cargarTodasLasParadas();
 
     if (mounted) {
       setState(() {
@@ -144,6 +151,20 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       });
       await _verificarYRestaurarViajeActivo();
       _iniciarMonitoreoAsistencia();
+    }
+  }
+
+  Future<void> _cargarTodasLasParadas() async {
+    try {
+      final response = await ApiService.get('/paradas');
+      final data = response['data'] as List<dynamic>? ?? [];
+      if (!mounted) return;
+      setState(() {
+        _todasParadas = data.cast<Map<String, dynamic>>();
+      });
+      _actualizarElementosVisualesDelMapa();
+    } catch (e) {
+      debugPrint('Error cargando paradas: $e');
     }
   }
 
@@ -177,9 +198,14 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   }
 
   void _chequearProximidadBus(Position pos) async {
-    if (!mounted || _dialogoAsistenciaAbierto) return;
+    if (!mounted) return;
 
     final miPos = LatLng(pos.latitude, pos.longitude);
+    if (!_trackingActivo) {
+      setState(() => _miUbicacionActual = miPos);
+    }
+
+    if (_dialogoAsistenciaAbierto) return;
 
     final cercanos = _asistenciaService
         .detectarBusesCercanos(miPos, _busesActivosFirebase)
@@ -356,6 +382,22 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     );
   }
 
+  void _mostrarInfoParadaGenerica(String nombre) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          nombre,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blue.shade900,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   void _actualizarElementosVisualesDelMapa() {
     if (!mounted) return;
     final nuevosMarkers = <Marker>[];
@@ -407,6 +449,55 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           ),
         );
       }
+    }
+
+    for (final parada in _todasParadas) {
+      final lat = double.tryParse(parada['lat']?.toString() ?? '');
+      final lng = double.tryParse(parada['lng']?.toString() ?? '');
+      if (lat == null || lng == null) continue;
+
+      final yaEstaEnRutaActiva = _paradasRuta.any((p) {
+        final pLat = double.tryParse(
+          p['lat']?.toString() ?? p['latitud']?.toString() ?? '',
+        );
+        final pLng = double.tryParse(
+          p['lng']?.toString() ?? p['longitud']?.toString() ?? '',
+        );
+        return pLat == lat && pLng == lng;
+      });
+      if (yaEstaEnRutaActiva) continue;
+
+      final nombreParada = parada['nombre']?.toString() ?? 'Parada';
+
+      nuevosMarkers.add(
+        Marker(
+          point: LatLng(lat, lng),
+          width: 26,
+          height: 26,
+          child: GestureDetector(
+            onTap: () => _mostrarInfoParadaGenerica(nombreParada),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.shade700,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 3,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.directions_bus,
+                color: Colors.white,
+                size: 12,
+              ),
+            ),
+          ),
+        ),
+      );
     }
 
     _busesActivosFirebase.forEach((id, bus) {
@@ -553,6 +644,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
     final List<dynamic> paradasRaw = viajeData['bus_ruta']?['paradas'] ?? [];
     final List<Map<String, dynamic>> paradasCargadas = [];
+    final dynamic kmInicioRaw = viajeData['km_inicio'] ?? viajeData['vehiculo']?['km_actual'] ?? 0;
+    _kmInicio = num.tryParse(kmInicioRaw.toString()) ?? 0;
 
     for (var p in paradasRaw) {
       if (p is Map<String, dynamic>) {
@@ -605,6 +698,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _miUbicacion = origen;
     _indicePuntoActual = 0;
     _cargandoRuta = false;
+    _miUbicacionActual = null;
 
     _actualizarMiBusEstado(
       posicion: origen,
@@ -632,6 +726,16 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       placa: placa,
       rutaNombre: rutaNombre,
       sede: 'UPTP',
+      onCanceladoExternamente: () {
+        if (!mounted || !_trackingActivo) return;
+        _cancelarRuta();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('El viaje fue finalizado o cancelado desde la central.'),
+            backgroundColor: _red,
+          ),
+        );
+      },
       onPositionChanged: (pos) {
         if (!mounted) return;
         final nuevaPos = LatLng(pos.latitude, pos.longitude);
@@ -654,11 +758,10 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           senalPerdida: false,
         );
 
-        // Esto sigue igual: recalcula polylines (necesario, cambia con cada punto)
         _actualizarElementosVisualesDelMapa();
         _mapController.move(nuevaPos, _mapController.camera.zoom);
 
-        if (_destinoFinalReal != null) {
+        if (_destinoFinalReal != null && !_dialogoFinalizarAbierto) {
           final distancia = Geolocator.distanceBetween(
             nuevaPos.latitude,
             nuevaPos.longitude,
@@ -667,7 +770,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           );
 
           if (distancia <= _radioLlegada) {
-            _finalizarRutaEnLaravel(viajeId);
+            _mostrarDialogoFinalizar();
           }
         }
       },
@@ -683,21 +786,149 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _finalizarRutaEnLaravel(String viajeId) async {
-    await _trackingService.detenerTracking(viajeId);
+  void _mostrarDialogoFinalizar() {
+    if (_viajeIdActivo == null || _dialogoFinalizarAbierto) return;
+    _dialogoFinalizarAbierto = true;
 
-    try {
-      await ApiService.post('/viajes/$viajeId/finalizar', {
-        'km_fin': 1000,
-        'pasajeros': 10,
-        'litros_gastados': 0,
-        'hubo_desvio': false,
-      });
-    } catch (e) {
-      debugPrint("Error finalizando en Laravel: $e");
-    }
+    final kmFinCtrl = TextEditingController(text: _kmInicio.toString());
+    final pasajerosCtrl = TextEditingController(text: '0');
+    final litrosCtrl = TextEditingController(text: '0');
+    final motivoDesvioCtrl = TextEditingController();
+    bool huboDesvio = false;
+    bool cargando = false;
 
-    _llegarAlDestino();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1F2937) : Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Finalizar Viaje', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: kmFinCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Kilometraje final (mín: $_kmInicio)',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: pasajerosCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Pasajeros transportados',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: litrosCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Litros de combustible gastados (opcional)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: huboDesvio,
+                    onChanged: (val) => setModalState(() => huboDesvio = val ?? false),
+                    title: const Text('¿Hubo desvío de ruta?'),
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  if (huboDesvio) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: motivoDesvioCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Motivo del desvío',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade800,
+                  minimumSize: const Size.fromHeight(44),
+                ),
+                onPressed: cargando
+                    ? null
+                    : () async {
+                        final kmFin = num.tryParse(kmFinCtrl.text) ?? _kmInicio;
+                        final pasajeros = int.tryParse(pasajerosCtrl.text) ?? 0;
+                        final litros = num.tryParse(litrosCtrl.text) ?? 0;
+
+                        if (kmFin < _kmInicio) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('El km final no puede ser menor a $_kmInicio')),
+                          );
+                          return;
+                        }
+
+                        if (huboDesvio && motivoDesvioCtrl.text.trim().length < 5) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Indica el motivo del desvío (mín. 5 caracteres)')),
+                          );
+                          return;
+                        }
+
+                        setModalState(() => cargando = true);
+
+                        final resp = await ApiService.post('/viajes/$_viajeIdActivo/finalizar', {
+                          'km_fin': kmFin,
+                          'pasajeros': pasajeros,
+                          'litros_gastados': litros,
+                          'hubo_desvio': huboDesvio,
+                          if (huboDesvio) 'motivo_desvio': motivoDesvioCtrl.text.trim(),
+                        });
+
+                        if (!mounted) return;
+                        setModalState(() => cargando = false);
+
+                        if (resp['success'] == true) {
+                          Navigator.pop(dialogCtx);
+                          await _trackingService.detenerTracking(_viajeIdActivo);
+                          _dialogoFinalizarAbierto = false;
+                          _llegarAlDestino();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(resp['message'] ?? 'Error al finalizar viaje.')),
+                          );
+                        }
+                      },
+                child: cargando
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Completar', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          );
+        },
+      ),
+    ).then((_) => _dialogoFinalizarAbierto = false);
   }
 
   void _llegarAlDestino() {
@@ -1068,7 +1299,9 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
   bool get _esOperativo => widget.roles.any((r) {
     final slug = (r['slug'] ?? '').toString().toLowerCase();
-    return slug == 'conductor' || slug == 'jefe-transporte' || slug == 'administrador';
+    return slug == 'conductor' ||
+        slug == 'jefe-transporte' ||
+        slug == 'administrador';
   });
 
   bool get _puedeIniciarRuta => _esOperativo;
@@ -1078,15 +1311,43 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
   List<NavItem> get _navItems {
     final items = [
-      const NavItem(label: 'Mapa', icon: Icons.map_outlined, activeIcon: Icons.map),
+      const NavItem(
+        label: 'Mapa',
+        icon: Icons.map_outlined,
+        activeIcon: Icons.map,
+      ),
     ];
     if (_esGestion) {
-      items.add(const NavItem(label: 'Catalogo', icon: Icons.directions_bus_outlined, activeIcon: Icons.directions_bus));
+      items.add(
+        const NavItem(
+          label: 'Catalogo',
+          icon: Icons.directions_bus_outlined,
+          activeIcon: Icons.directions_bus,
+        ),
+      );
     }
-    items.add(const NavItem(label: 'Viajes', icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today));
+    items.add(
+      const NavItem(
+        label: 'Viajes',
+        icon: Icons.calendar_today_outlined,
+        activeIcon: Icons.calendar_today,
+      ),
+    );
     if (_esOperativo) {
-      items.add(const NavItem(label: 'Mant.', icon: Icons.build_outlined, activeIcon: Icons.build));
-      items.add(const NavItem(label: 'Asistencia', icon: Icons.qr_code_scanner_outlined, activeIcon: Icons.qr_code_scanner));
+      items.add(
+        const NavItem(
+          label: 'Mant.',
+          icon: Icons.build_outlined,
+          activeIcon: Icons.build,
+        ),
+      );
+      items.add(
+        const NavItem(
+          label: 'Asistencia',
+          icon: Icons.qr_code_scanner_outlined,
+          activeIcon: Icons.qr_code_scanner,
+        ),
+      );
     }
     return items;
   }
@@ -1103,7 +1364,18 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => BusCatalogoScreen(themeProvider: widget.themeProvider),
+          builder: (_) =>
+              BusCatalogoScreen(themeProvider: widget.themeProvider),
+        ),
+      );
+      return;
+    }
+
+    if (item.label == 'Viajes') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => BusViajeScreen(themeProvider: widget.themeProvider),
         ),
       );
       return;
@@ -1161,6 +1433,31 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
               colorActivo: Colors.green.shade800,
               colorInactivo: _red,
             ),
+
+            if (_miUbicacionActual != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _miUbicacionActual!,
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade600,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
         if (_cargandoRuta)
@@ -1189,7 +1486,9 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
             bottom: 16,
             child: _trackingActivo
                 ? CancelarRutaButton(onTap: _mostrarDialogoCancelar)
-                : (_puedeIniciarRuta ? IniciarRutaPanel(onReal: _iniciarRuta) : const SizedBox.shrink()),
+                : (_puedeIniciarRuta
+                      ? IniciarRutaPanel(onReal: _iniciarRuta)
+                      : const SizedBox.shrink()),
           ),
       ],
     );

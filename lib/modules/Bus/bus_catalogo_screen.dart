@@ -92,7 +92,6 @@ class _BusCatalogoScreenState extends State<BusCatalogoScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: const [
-          // ── Cada pestaña es un StatefulWidget con su propio Navigator ──────
           _TabMarcas(),
           _TabModelos(),
           _TabCombustible(),
@@ -109,7 +108,6 @@ class _BusCatalogoScreenState extends State<BusCatalogoScreen> {
   }
 }
 
-// ─── Pestaña Marcas ───────────────────────────────────────────────────────────
 class _TabMarcas extends StatelessWidget {
   const _TabMarcas();
   @override
@@ -121,7 +119,6 @@ class _TabMarcas extends StatelessWidget {
   }
 }
 
-// ─── Pestaña Modelos ──────────────────────────────────────────────────────────
 class _TabModelos extends StatelessWidget {
   const _TabModelos();
   @override
@@ -133,7 +130,6 @@ class _TabModelos extends StatelessWidget {
   }
 }
 
-// ─── Pestaña Combustible ──────────────────────────────────────────────────────
 class _TabCombustible extends StatelessWidget {
   const _TabCombustible();
   @override
@@ -152,83 +148,6 @@ class _TabVehiculos extends StatelessWidget {
     return Navigator(
       onGenerateRoute: (_) =>
           MaterialPageRoute(builder: (_) => const BusVehicleScreen()),
-    );
-  }
-}
-
-// ─── Placeholder ──────────────────────────────────────────────────────────────
-class _Placeholder extends StatelessWidget {
-  final IconData icon;
-  final String titulo;
-  final String subtitulo;
-  const _Placeholder({
-    required this.icon,
-    required this.titulo,
-    required this.subtitulo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: const Color(0xFFB71C1C).withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 38,
-                color: const Color(0xFFB71C1C).withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              titulo,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white70 : const Color(0xFF1A1A1A),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitulo,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: isDark
-                    ? const Color(0xFF666666)
-                    : const Color(0xFF999999),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFB71C1C).withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'En desarrollo',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFB71C1C),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -39,7 +39,7 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
 
   void _onCatalogChanged() {
     if (mounted) {
-      _cargar(); // Vuelve a traer los modelos y las marcas actualizadas de la API
+      _cargar();
     }
   }
 
@@ -51,8 +51,7 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
     });
     try {
       final data = await BusMarcaService.getAll();
-      
-      // Guardián: Si destruiste la pantalla mientras cargaba la API
+
       if (!mounted) return;
       setState(() {
         _marcas = data;
@@ -83,13 +82,12 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => MarcaFormSheet(marca: marca),
     );
-    // Guardián: Si se cerró el modal y saliste de la pantalla al mismo tiempo
     if (result == null || !mounted) return;
 
     try {
       if (marca == null) {
         final nueva = await BusMarcaService.create(result);
-        if (!mounted) return; // Guardián post-API
+        if (!mounted) return;
         setState(() {
           _marcas.add(nueva);
           _filtrar();
@@ -98,7 +96,7 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
         _snack('Marca "${nueva.nombre}" creada.', success: true);
       } else {
         final actualizada = await BusMarcaService.update(marca.id, result);
-        if (!mounted) return; // Guardián post-API
+        if (!mounted) return; 
         setState(() {
           final i = _marcas.indexWhere((m) => m.id == marca.id);
           if (i != -1) _marcas[i] = actualizada;
@@ -115,7 +113,7 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
   Future<void> _toggle(BusMarca marca) async {
     try {
       await BusMarcaService.toggle(marca.id);
-      if (!mounted) return; // Guardián post-API
+      if (!mounted) return;
       setState(() {
         final i = _marcas.indexWhere((m) => m.id == marca.id);
         if (i != -1) _marcas[i] = marca.copyWith(estado: !marca.estado);
@@ -161,7 +159,6 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
 
       body: Column(
         children: [
-          // Barra de búsqueda
           Container(
             color: _red,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -183,10 +180,8 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
             ),
           ),
 
-          // Estadísticas rápidas
           StatsBar(marcas: _marcas),
 
-          // Lista
           Expanded(child: _buildBody(isDark)),
         ],
       ),

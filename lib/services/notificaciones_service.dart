@@ -9,7 +9,7 @@ class NotificacionesService {
   static Future<void> inicializar() async {
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('ic_stat_notification');
     const initSettings = InitializationSettings(android: androidInit);
     await _local.initialize(initSettings);
 
@@ -45,6 +45,7 @@ class NotificacionesService {
         'Asistencia Moove',
         importance: Importance.high,
         priority: Priority.high,
+        icon: 'ic_stat_notification',
       ),
     );
     return _local.show(

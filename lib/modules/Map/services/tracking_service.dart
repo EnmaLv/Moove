@@ -6,6 +6,7 @@ import '/../services/api_service.dart';
 
 class TrackingService {
   StreamSubscription<Position>? _positionStream;
+  StreamSubscription<DocumentSnapshot>? _docSubscription;
   DateTime? _ultimaActualizacion;
   DateTime? get ultimaActualizacion => _ultimaActualizacion;
 
@@ -36,6 +37,7 @@ class TrackingService {
     required String rutaNombre,
     required String sede,
     required Function(Position pos) onPositionChanged,
+    VoidCallback? onCanceladoExternamente,
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -50,6 +52,16 @@ class TrackingService {
       'pasajeros': 0,
       'ultima_actualizacion': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Monitorizar si el documento es eliminado externamente (Dashboard/Backend)
+    _docSubscription?.cancel();
+    _docSubscription = _busesRef.doc(viajeId).snapshots().listen((snapshot) {
+      if (!snapshot.exists && _positionStream != null) {
+        debugPrint("Documento $viajeId eliminado externamente. Deteniendo GPS...");
+        detenerTracking(viajeId);
+        onCanceladoExternamente?.call();
+      }
+    });
 
     _positionStream?.cancel();
     _ultimaActualizacion = DateTime.now();
@@ -71,12 +83,17 @@ class TrackingService {
 
       try {
         final speedKmh = position.speed * 3.6;
-        await ApiService.post('/viajes/$viajeId/gps', {
+        final res = await ApiService.post('/viajes/$viajeId/gps', {
           'lat': position.latitude,
           'lng': position.longitude,
           'velocidad': speedKmh,
           'heading': position.heading,
         });
+
+        if (res['success'] == false || res['code'] == 'VIAJE_NO_ACTIVO') {
+          await detenerTracking(viajeId);
+          onCanceladoExternamente?.call();
+        }
       } catch (e) {
         debugPrint("Error al enviar GPS a Laravel HTTP: $e");
       }
@@ -84,6 +101,9 @@ class TrackingService {
   }
 
   Future<void> detenerTracking(String? viajeId) async {
+    await _docSubscription?.cancel();
+    _docSubscription = null;
+
     await _positionStream?.cancel();
     _positionStream = null;
     _ultimaActualizacion = null;
@@ -95,6 +115,6 @@ class TrackingService {
       } catch (e) {
         debugPrint("Error al remover bus de Firestore: $e");
       }
-    } 
+    }
   }
 }
