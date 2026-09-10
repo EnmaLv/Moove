@@ -8,6 +8,7 @@ class BusEnMapa {
   final bool enMovimiento;
   final int pasajeros;
   final String sede;
+  final double heading;
 
   const BusEnMapa({
     required this.id,
@@ -17,11 +18,13 @@ class BusEnMapa {
     required this.enMovimiento,
     required this.pasajeros,
     this.sede = 'UPTP',
+    this.heading = 0,
   });
 
   factory BusEnMapa.fromFirestore(String key, Map<String, dynamic> json) {
     final lat = (json['latitud'] ?? json['lat'] ?? 0.0) as num;
     final lng = (json['longitud'] ?? json['lng'] ?? 0.0) as num;
+    final heading = (json['heading'] ?? 0.0) as num;
 
     return BusEnMapa(
       id: key,
@@ -31,6 +34,7 @@ class BusEnMapa {
       enMovimiento: json['en_movimiento'] ?? json['enMovimiento'] ?? false,
       pasajeros: (json['pasajeros'] ?? 0) as int,
       sede: json['sede']?.toString() ?? 'Acarigua',
+      heading: heading.toDouble(),
     );
   }
 

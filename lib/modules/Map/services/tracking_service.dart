@@ -10,8 +10,9 @@ class TrackingService {
   DateTime? _ultimaActualizacion;
   DateTime? get ultimaActualizacion => _ultimaActualizacion;
 
-  final CollectionReference _busesRef =
-      FirebaseFirestore.instance.collection('buses_activos');
+  final CollectionReference _busesRef = FirebaseFirestore.instance.collection(
+    'buses_activos',
+  );
 
   Future<bool> solicitarPermisos() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -41,7 +42,7 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 50,
+      distanceFilter: 1,
     );
 
     _busesRef.doc(viajeId).set({
@@ -57,7 +58,9 @@ class TrackingService {
     _docSubscription?.cancel();
     _docSubscription = _busesRef.doc(viajeId).snapshots().listen((snapshot) {
       if (!snapshot.exists && _positionStream != null) {
-        debugPrint("Documento $viajeId eliminado externamente. Deteniendo GPS...");
+        debugPrint(
+          "Documento $viajeId eliminado externamente. Deteniendo GPS...",
+        );
         detenerTracking(viajeId);
         onCanceladoExternamente?.call();
       }
@@ -65,39 +68,43 @@ class TrackingService {
 
     _positionStream?.cancel();
     _ultimaActualizacion = DateTime.now();
-    _positionStream = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen((Position position) async {
-      _ultimaActualizacion = DateTime.now();
-      onPositionChanged(position);
+    _positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (Position position) async {
+            _ultimaActualizacion = DateTime.now();
+            onPositionChanged(position);
 
-      _busesRef.doc(viajeId).set({
-        'latitud': position.latitude,
-        'longitud': position.longitude,
-        'en_movimiento': position.speed > 0.5,
-        'heading': position.heading,
-        'ultima_actualizacion': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true)).catchError((error) {
-        debugPrint("Error Firestore: $error");
-      });
+            _busesRef
+                .doc(viajeId)
+                .set({
+                  'latitud': position.latitude,
+                  'longitud': position.longitude,
+                  'en_movimiento': position.speed > 0.5,
+                  'heading': position.heading,
+                  'ultima_actualizacion': FieldValue.serverTimestamp(),
+                }, SetOptions(merge: true))
+                .catchError((error) {
+                  debugPrint("Error Firestore: $error");
+                });
 
-      try {
-        final speedKmh = position.speed * 3.6;
-        final res = await ApiService.post('/viajes/$viajeId/gps', {
-          'lat': position.latitude,
-          'lng': position.longitude,
-          'velocidad': speedKmh,
-          'heading': position.heading,
-        });
+            try {
+              final speedKmh = position.speed * 3.6;
+              final res = await ApiService.post('/viajes/$viajeId/gps', {
+                'lat': position.latitude,
+                'lng': position.longitude,
+                'velocidad': speedKmh,
+                'heading': position.heading,
+              });
 
-        if (res['success'] == false || res['code'] == 'VIAJE_NO_ACTIVO') {
-          await detenerTracking(viajeId);
-          onCanceladoExternamente?.call();
-        }
-      } catch (e) {
-        debugPrint("Error al enviar GPS a Laravel HTTP: $e");
-      }
-    });
+              if (res['success'] == false || res['code'] == 'VIAJE_NO_ACTIVO') {
+                await detenerTracking(viajeId);
+                onCanceladoExternamente?.call();
+              }
+            } catch (e) {
+              debugPrint("Error al enviar GPS a Laravel HTTP: $e");
+            }
+          },
+        );
   }
 
   Future<void> detenerTracking(String? viajeId) async {
