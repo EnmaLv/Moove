@@ -5,6 +5,7 @@ import 'modules/splash/splash_screen.dart';
 import 'widgets/app_bar.dart';
 import 'services/notificaciones_service.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'services/sync_service.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await NotificacionesService.inicializar();
+  await SyncService.instance.initialize();
 
   final themeProvider = AppThemeProvider();
   await themeProvider.loadPrefs();

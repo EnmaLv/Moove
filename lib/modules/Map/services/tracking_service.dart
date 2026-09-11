@@ -2,7 +2,8 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import '/../services/api_service.dart';
+import 'package:uuid/uuid.dart';
+import '../../../services/sync_service.dart';
 
 class TrackingService {
   StreamSubscription<Position>? _positionStream;
@@ -42,7 +43,7 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 50,
+      distanceFilter: 1,
     );
 
     _busesRef.doc(viajeId).set({
@@ -54,7 +55,6 @@ class TrackingService {
       'ultima_actualizacion': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
-    // Monitorizar si el documento es eliminado externamente (Dashboard/Backend)
     _docSubscription?.cancel();
     _docSubscription = _busesRef.doc(viajeId).snapshots().listen((snapshot) {
       if (!snapshot.exists && _positionStream != null) {
@@ -69,42 +69,48 @@ class TrackingService {
     _positionStream?.cancel();
     _ultimaActualizacion = DateTime.now();
     _positionStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (Position position) async {
-            _ultimaActualizacion = DateTime.now();
-            onPositionChanged(position);
+        Geolocator.getPositionStream(
+          locationSettings: locationSettings,
+        ).listen((Position position) async {
+          _ultimaActualizacion = DateTime.now();
+          final speedKmh = position.speed * 3.6;
 
-            _busesRef
-                .doc(viajeId)
-                .set({
-                  'latitud': position.latitude,
-                  'longitud': position.longitude,
-                  'en_movimiento': position.speed > 0.5,
-                  'heading': position.heading,
-                  'ultima_actualizacion': FieldValue.serverTimestamp(),
-                }, SetOptions(merge: true))
-                .catchError((error) {
-                  debugPrint("Error Firestore: $error");
-                });
+          // 1. Guardar en cola local con la estructura EXACTA que valida Laravel
+          await SyncService.instance.enqueue(
+            type: 'gps',
+            endpoint: '/viajes/$viajeId/gps',
+            payload: {
+              'local_id': const Uuid()
+                  .v4(), // Requerido por la validación de Laravel
+              'lat': position.latitude,
+              'lng': position.longitude,
+              'velocidad': speedKmh,
+              'heading': position.heading,
+              'timestamp': DateTime.now()
+                  .toUtc()
+                  .toIso8601String(), // Campo OBLIGATORIO por Laravel
+            },
+          );
 
-            try {
-              final speedKmh = position.speed * 3.6;
-              final res = await ApiService.post('/viajes/$viajeId/gps', {
-                'lat': position.latitude,
-                'lng': position.longitude,
-                'velocidad': speedKmh,
+          // 2. Intentar vaciar cola sin congelar la ejecución del stream
+          SyncService.instance.flush();
+
+          // 3. Notificar a la interfaz la nueva posición local inmediatamente
+          onPositionChanged(position);
+
+          _busesRef
+              .doc(viajeId)
+              .set({
+                'latitud': position.latitude,
+                'longitud': position.longitude,
+                'en_movimiento': position.speed > 0.5,
                 'heading': position.heading,
+                'ultima_actualizacion': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true))
+              .catchError((error) {
+                debugPrint("Error Firestore: $error");
               });
-
-              if (res['success'] == false || res['code'] == 'VIAJE_NO_ACTIVO') {
-                await detenerTracking(viajeId);
-                onCanceladoExternamente?.call();
-              }
-            } catch (e) {
-              debugPrint("Error al enviar GPS a Laravel HTTP: $e");
-            }
-          },
-        );
+        });
   }
 
   Future<void> detenerTracking(String? viajeId) async {
