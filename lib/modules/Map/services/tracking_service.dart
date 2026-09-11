@@ -43,7 +43,7 @@ class TrackingService {
   }) {
     const locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 1,
+      distanceFilter: 50,
     );
 
     _busesRef.doc(viajeId).set({

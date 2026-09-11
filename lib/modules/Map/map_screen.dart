@@ -78,6 +78,8 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   LatLng? _destinoFinalReal;
 
   int _indicePuntoActual = 0;
+  int _indiceParadaObjetivo = 0;
+  static const double _radioCheckpoint = 20.0;
   List<LatLng> _rutaCalles = [];
 
   List<Map<String, dynamic>> _todasParadas = [];
@@ -717,6 +719,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _trackingActivo = true;
     _miUbicacion = origen;
     _indicePuntoActual = 0;
+    _indiceParadaObjetivo = 0;
     _cargandoRuta = false;
     _miUbicacionActual = null;
 
@@ -782,21 +785,11 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
         _actualizarElementosVisualesDelMapa();
         _mapController.move(nuevaPos, _mapController.camera.zoom);
 
-        if (_destinoFinalReal != null && !_dialogoFinalizarAbierto) {
-          final cercaDelFinalDelRecorrido =
-              _rutaCalles.isEmpty ||
-              _indicePuntoActual >= _rutaCalles.length - 5;
+        _actualizarProgresoPorParadas(nuevaPos);
 
-          final distancia = Geolocator.distanceBetween(
-            nuevaPos.latitude,
-            nuevaPos.longitude,
-            _destinoFinalReal!.latitude,
-            _destinoFinalReal!.longitude,
-          );
-
-          if (cercaDelFinalDelRecorrido && distancia <= _radioLlegada) {
-            _finalizarRutaAutomatico();
-          }
+        if (_indiceParadaObjetivo >= _paradasRuta.length &&
+            !_dialogoFinalizarAbierto) {
+          _finalizarRutaAutomatico();
         }
       },
     );
@@ -857,6 +850,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _rutaCalles = [];
     _paradasRuta = [];
     _indicePuntoActual = 0;
+    _indiceParadaObjetivo = 0;
     _viajeIdActivo = null;
     _watchdogSenal?.cancel();
     _actualizarMiBusEstado(activo: false, senalPerdida: false);
@@ -883,6 +877,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
     _trackingService.detenerTracking(_viajeIdActivo);
     _trackingActivo = false;
     _indicePuntoActual = 0;
+    _indiceParadaObjetivo = 0;
     _rutaCalles = [];
     _paradasRuta = [];
     _viajeIdActivo = null;
@@ -1190,6 +1185,33 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
           builder: (_) => LoginScreen(themeProvider: widget.themeProvider),
         ),
       );
+    }
+  }
+
+  void _actualizarProgresoPorParadas(LatLng posicionActual) {
+    if (_indiceParadaObjetivo >= _paradasRuta.length) return;
+
+    final parada = _paradasRuta[_indiceParadaObjetivo];
+    final lat = double.tryParse(
+      parada['lat']?.toString() ?? parada['latitud']?.toString() ?? '',
+    );
+    final lng = double.tryParse(
+      parada['lng']?.toString() ?? parada['longitud']?.toString() ?? '',
+    );
+    if (lat == null || lng == null) {
+      _indiceParadaObjetivo++;
+      return;
+    }
+
+    final distancia = Geolocator.distanceBetween(
+      posicionActual.latitude,
+      posicionActual.longitude,
+      lat,
+      lng,
+    );
+
+    if (distancia <= _radioCheckpoint) {
+      _indiceParadaObjetivo++;
     }
   }
 
