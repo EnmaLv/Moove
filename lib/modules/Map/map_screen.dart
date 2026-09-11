@@ -1326,7 +1326,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => BusAsistenciaScreen(viajeIdActivo: _viajeIdActivo),
+          builder: (_) => BusAsistenciaScreen(themeProvider: widget.themeProvider, viajeIdActivo: _viajeIdActivo),
         ),
       );
       return;

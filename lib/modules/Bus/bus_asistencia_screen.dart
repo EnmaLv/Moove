@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_bar.dart';
 import 'model/asistencia_pasajero_model.dart';
 import 'service/asistencia_pasajero_service.dart';
 import 'widgets/scanner_carnet_widget.dart';
 
+const _asistenciaItems = [
+  NavItem(
+    label: 'Asistencia',
+    icon: Icons.qr_code_scanner_outlined,
+    activeIcon: Icons.qr_code_scanner,
+  ),
+];
+
 class BusAsistenciaScreen extends StatefulWidget {
   final String? viajeIdActivo;
+  final AppThemeProvider themeProvider;
 
-  const BusAsistenciaScreen({super.key, required this.viajeIdActivo});
+  const BusAsistenciaScreen({
+    super.key,
+    required this.viajeIdActivo,
+    required this.themeProvider,
+  });
 
   @override
   State<BusAsistenciaScreen> createState() => _BusAsistenciaScreenState();
@@ -15,6 +29,7 @@ class BusAsistenciaScreen extends StatefulWidget {
 class _BusAsistenciaScreenState extends State<BusAsistenciaScreen> {
   static const _red = Color(0xFFB71C1C);
 
+  int _currentIndex = 0;
   bool _procesando = false;
   final List<ResultadoAsistencia> _historial = [];
   final TextEditingController _cedulaManualCtrl = TextEditingController();
@@ -77,6 +92,12 @@ class _BusAsistenciaScreenState extends State<BusAsistenciaScreen> {
               style: TextStyle(fontSize: 15, color: Colors.grey),
             ),
           ),
+        ),
+        bottomNavigationBar: AppBottomNav(
+          items: _asistenciaItems,
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          themeProvider: widget.themeProvider,
         ),
       );
     }
@@ -188,6 +209,12 @@ class _BusAsistenciaScreenState extends State<BusAsistenciaScreen> {
                   ),
           ),
         ],
+      ),
+      bottomNavigationBar: AppBottomNav(
+        items: _asistenciaItems,
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        themeProvider: widget.themeProvider,
       ),
     );
   }
