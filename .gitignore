@@ -44,4 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Local environment variables
+.env
+.env.*
+!.env.example
+
 /lib/core/constants/api_routes.dart

@@ -24,7 +24,7 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
   List<BusMarca> _marcas = [];
   bool _cargando = true;
   String? _error;
-  String? _filtroMarcaId; // null = todas las marcas
+  String? _filtroMarcaId;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -44,7 +44,7 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
 
   void _onCatalogChanged() {
     if (mounted) {
-      _cargar(); // Vuelve a traer los modelos y las marcas actualizadas de la API
+      _cargar();
     }
   }
 
@@ -60,21 +60,20 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
         BusModeloService.getMarcas(),
       ]);
 
-      // Guardián post-API
       if (!mounted) return;
 
       setState(() {
         _modelos = results[0] as List<BusModelo>;
         final marcas = results[1] as List<BusMarca>;
-        _marcas = marcas
-            .where((m) => m.estado == true || m.estado == 1)
-            .toList();
-        _filtrados = _modelos.where((m) => m.estado).toList();
+        _marcas = marcas.where((m) => m.estado).toList();
       });
+
+      _filtrar();
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
     } finally {
+      // ignore: control_flow_in_finally
       if (!mounted) return;
       setState(() => _cargando = false);
     }
@@ -111,7 +110,6 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => ModeloFormSheet(modelo: modelo, marcas: _marcas),
     );
-    // Guardián post-modal
     if (result == null || !mounted) return;
 
     final marcaId = result['marcaId'] as int;
@@ -120,7 +118,7 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
     try {
       if (modelo == null) {
         final nuevo = await BusModeloService.create(marcaId, nombre);
-        if (!mounted) return; // Guardián post-API
+        if (!mounted) return;
         setState(() {
           _modelos.add(nuevo);
           _filtrar();
@@ -133,7 +131,7 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
           marcaId,
           nombre,
         );
-        if (!mounted) return; // Guardián post-API
+        if (!mounted) return;
         setState(() {
           final i = _modelos.indexWhere((m) => m.id == modelo.id);
           if (i != -1) _modelos[i] = actualizado;
@@ -150,7 +148,7 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
   Future<void> _toggle(BusModelo modelo) async {
     try {
       await BusModeloService.toggle(modelo.id);
-      if (!mounted) return; // Guardián post-API
+      if (!mounted) return;
       setState(() {
         final i = _modelos.indexWhere((m) => m.id == modelo.id);
         if (i != -1) _modelos[i] = modelo.copyWith(estado: !modelo.estado);
@@ -182,11 +180,11 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
         ],
       ),
     );
-    if (confirm != true || !mounted) return; // Guardián post-dialog
+    if (confirm != true || !mounted) return;
 
     try {
       await BusModeloService.delete(modelo.id);
-      if (!mounted) return; // Guardián post-API
+      if (!mounted) return;
       setState(() {
         _modelos.removeWhere((m) => m.id == modelo.id);
         _filtrar();
@@ -230,7 +228,6 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
       ),
       body: Column(
         children: [
-          // Barra de búsqueda (mismo estilo que marcas)
           Container(
             color: _red,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -253,7 +250,6 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                // Filtro por marca — chips horizontales
                 if (_marcas.isNotEmpty)
                   SizedBox(
                     height: 32,
@@ -279,10 +275,8 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
             ),
           ),
 
-          // Stats
           StatsBar(modelos: _modelos, marcas: _marcas),
 
-          // Lista
           Expanded(child: _buildBody(isDark)),
         ],
       ),

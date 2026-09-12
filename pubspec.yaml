@@ -46,6 +46,7 @@ flutter_launcher_icons:
 
 flutter:
   assets:
+    - .env
     - assets/animations/moove_splash.json
     - assets/icons/Moove_Bus.svg
   uses-material-design: true

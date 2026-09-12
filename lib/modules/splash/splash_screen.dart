@@ -107,15 +107,17 @@ class _MooveSplashScreenState extends State<MooveSplashScreen>
       body: FadeTransition(
         opacity: _exitFade,
         child: SizedBox.expand(
-          child: Lottie.asset(
-            'assets/animations/moove_splash.json',
-            controller: _lottieCtrl,
-            fit: BoxFit.cover,
-            onLoaded: (composition) {
-              _lottieCtrl.duration = composition.duration;
-              FlutterNativeSplash.remove();
-              _startSequence();
-            },
+          child: RepaintBoundary(
+            child: Lottie.asset(
+              'assets/animations/moove_splash.json',
+              controller: _lottieCtrl,
+              fit: BoxFit.cover,
+              onLoaded: (composition) {
+                _lottieCtrl.duration = composition.duration;
+                FlutterNativeSplash.remove();
+                _startSequence();
+              },
+            ),
           ),
         ),
       ),
