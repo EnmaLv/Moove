@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
@@ -22,6 +22,7 @@ class SyncService {
   bool _initialized = false;
 
   Future<void> initialize() async {
+    if (kIsWeb) return;
     if (_initialized) return;
     _initialized = true;
 
@@ -45,6 +46,7 @@ class SyncService {
     required String endpoint,
     required Map<String, dynamic> payload,
   }) async {
+    if (kIsWeb) return '';
     final db = await LocalDatabase.database;
 
     final localId = _uuid.v4();
@@ -65,6 +67,7 @@ class SyncService {
   }
 
   Future<int> pendingCount() async {
+    if (kIsWeb) return 0;
     final db = await LocalDatabase.database;
 
     final result = await db.rawQuery(
@@ -75,6 +78,7 @@ class SyncService {
   }
 
   Future<void> flush() async {
+    if (kIsWeb) return;
     if (_syncing) return;
 
     _syncing = true;

@@ -64,7 +64,7 @@ class BusVehiculo {
       modeloId: toInt(j['modelo_id']),
       modeloNombre: j['modelo']?['nombre'] as String? ?? 'Desconocido',
       marcaNombre:
-          j['modelo']?['bus_marca']?['nombre'] as String? ??
+          j['modelo']?['marca']?['nombre'] as String? ??
           j['modelo']?['marca']?['nombre'] as String? ??
           '',
       anio: toInt(j['anio']),
@@ -73,7 +73,7 @@ class BusVehiculo {
       tipoCombustibleId: toInt(j['tipo_combustible_id']),
       combustibleNombre:
           j['tipo_combustible']?['nombre'] as String? ?? 'Desconocido',
-      cantidadBocas: toInt(j['cantidad_bocas']),
+      cantidadBocas: toInt(j['cantidad_cilindros']),
       capacidadTanqueLitros: toDouble(j['capacidad_tanque_litros']),
       consumoLitrosKm: toDouble(j['consumo_litros_km']),
       kmActual: toDouble(j['km_actual']),

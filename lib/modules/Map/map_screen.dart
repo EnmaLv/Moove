@@ -1326,7 +1326,10 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => BusAsistenciaScreen(themeProvider: widget.themeProvider, viajeIdActivo: _viajeIdActivo),
+          builder: (_) => BusAsistenciaScreen(
+            themeProvider: widget.themeProvider,
+            viajeIdActivo: _viajeIdActivo,
+          ),
         ),
       );
       return;
@@ -1350,6 +1353,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   }
 
   Widget _buildMapPage() {
+    const String cartoApiKey = 'cb1_3i2u_1_3ff408209bcefd9385697d48';
     if (!_mapaListo) {
       return const Center(
         child: Column(
@@ -1366,14 +1370,30 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Stack(
       children: [
         FlutterMap(
           mapController: _mapController,
-          options: MapOptions(initialCenter: _centroInicial, initialZoom: 15.0),
+          options: MapOptions(
+            initialCenter: _centroInicial,
+            initialZoom: 15.0,
+            minZoom: 4.0,
+            maxZoom: 18.0,
+            cameraConstraint: CameraConstraint.contain(
+              bounds: LatLngBounds(
+                const LatLng(-89.9, -180.0),
+                const LatLng(89.9, 180.0),
+              ),
+            ),
+          ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: isDark
+                  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?key=$cartoApiKey'
+                  : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              subdomains: isDark ? const ['a', 'b', 'c', 'd'] : const [],
               userAgentPackageName: 'com.uptp.moove',
               evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
             ),
@@ -1384,7 +1404,6 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
               colorActivo: Colors.green.shade800,
               colorInactivo: _red,
             ),
-
             if (_miUbicacionActual != null)
               MarkerLayer(
                 markers: [

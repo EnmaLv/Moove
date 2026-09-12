@@ -146,7 +146,7 @@ class _BusMarcaScreenState extends State<BusMarcaScreen> {
     return Scaffold(
       backgroundColor: bg,
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_bus_marca',
+        heroTag: 'fab_marca',
         onPressed: () => _crearOEditar(),
         backgroundColor: _red,
         foregroundColor: Colors.white,

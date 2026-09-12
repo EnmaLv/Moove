@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -51,18 +48,25 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDIjcUXCHXbbT2Pn5ixzMJ5dCwmmtCaaUI',
-    appId: '1:692788093576:android:1114d879d97c7f4845753d',
+    appId: '1:692788093576:android:b21edd49a22b4d2a45753d',
     messagingSenderId: '692788093576',
     projectId: 'movibus-uptp',
     storageBucket: 'movibus-uptp.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyC6BafVm_KXl6L5PYnJmYh6bysqM0c3S1o',
-    appId: '1:692788093576:ios:763a39667c7ed90145753d',
+    appId: '1:692788093576:ios:dd23f77a99e21dc345753d',
     messagingSenderId: '692788093576',
     projectId: 'movibus-uptp',
     storageBucket: 'movibus-uptp.firebasestorage.app',
     iosBundleId: 'com.uptp.moove',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyAb3UXXzed-zaQywYoDKpufEpfJBKA2Boo',
+    appId: '1:692788093576:web:ba6e8f4c022a31e845753d',
+    messagingSenderId: '692788093576',
+    projectId: 'movibus-uptp',
+    authDomain: 'movibus-uptp.firebaseapp.com',
+    storageBucket: 'movibus-uptp.firebasestorage.app',
   );
 }
