@@ -1354,21 +1354,7 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
   }
 
   Widget _buildMapPage() {
-    final cartoApiKey = dotenv.env['CARTO_API_KEY'] ??
-        const String.fromEnvironment('CARTO_API_KEY', defaultValue: '');
-
-    if (cartoApiKey.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            'Falta la variable de entorno CARTO_API_KEY.',
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
+    const String cartoApiKey = 'cb1_3i2u_1_3ff408209bcefd9385697d48';
     if (!_mapaListo) {
       return const Center(
         child: Column(
@@ -1389,64 +1375,61 @@ class _MoviMapState extends State<MoviMap> with WidgetsBindingObserver {
 
     return Stack(
       children: [
-        RepaintBoundary(
-          child: FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _centroInicial,
-              initialZoom: 15.0,
-              minZoom: 4.0,
-              maxZoom: 18.0,
-              cameraConstraint: CameraConstraint.contain(
-                bounds: LatLngBounds(
-                  const LatLng(-89.9, -180.0),
-                  const LatLng(89.9, 180.0),
-                ),
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _centroInicial,
+            initialZoom: 15.0,
+            minZoom: 4.0,
+            maxZoom: 18.0,
+            cameraConstraint: CameraConstraint.contain(
+              bounds: LatLngBounds(
+                const LatLng(-89.9, -180.0),
+                const LatLng(89.9, 180.0),
               ),
             ),
-            children: [
-              TileLayer(
-                urlTemplate: isDark
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?key=$cartoApiKey'
-                    : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: isDark ? const ['a', 'b', 'c', 'd'] : const [],
-                tileProvider: NetworkTileProvider(),
-                userAgentPackageName: 'com.uptp.moove',
-                evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
-              ),
-              if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),
-              MarkerLayer(markers: _markers),
-              MiBusMarkerLayer(
-                notifier: _miBusNotifier,
-                colorActivo: Colors.green.shade800,
-                colorInactivo: _red,
-              ),
-              if (_miUbicacionActual != null)
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _miUbicacionActual!,
-                      width: 22,
-                      height: 22,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade600,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.blue.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: isDark
+                  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?key=$cartoApiKey'
+                  : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              subdomains: isDark ? const ['a', 'b', 'c', 'd'] : const [],
+              userAgentPackageName: 'com.uptp.moove',
+              evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
+            ),
+            if (_polylines.isNotEmpty) PolylineLayer(polylines: _polylines),
+            MarkerLayer(markers: _markers),
+            MiBusMarkerLayer(
+              notifier: _miBusNotifier,
+              colorActivo: Colors.green.shade800,
+              colorInactivo: _red,
+            ),
+            if (_miUbicacionActual != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _miUbicacionActual!,
+                    width: 22,
+                    height: 22,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade600,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withValues(alpha: 0.4),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-            ],
-          ),
+                  ),
+                ],
+              ),
+          ],
         ),
         if (_cargandoRuta)
           Container(

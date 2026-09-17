@@ -28,6 +28,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
   late TextEditingController _placaCtrl;
   late TextEditingController _anioCtrl;
   late TextEditingController _colorCtrl;
+  late TextEditingController _pesoCtrl;
   late TextEditingController _pasajerosCtrl;
   late TextEditingController _bocasCtrl;
   late TextEditingController _tanqueCtrl;
@@ -50,6 +51,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
     _placaCtrl = TextEditingController(text: v?.placa ?? '');
     _anioCtrl = TextEditingController(text: v?.anio.toString() ?? '');
     _colorCtrl = TextEditingController(text: v?.color ?? '');
+    _pesoCtrl = TextEditingController(text: v?.peso.toString() ?? '');
     _pasajerosCtrl = TextEditingController(
       text: v?.cantidadPasajeros.toString() ?? '',
     );
@@ -87,6 +89,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
     _placaCtrl.dispose();
     _anioCtrl.dispose();
     _colorCtrl.dispose();
+    _pesoCtrl.dispose();
     _pasajerosCtrl.dispose();
     _bocasCtrl.dispose();
     _tanqueCtrl.dispose();
@@ -114,6 +117,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
       'modelo_id': _modeloSel!.id,
       'anio': int.parse(_anioCtrl.text),
       'color': _colorCtrl.text.trim(),
+      'peso': int.parse(_pesoCtrl.text),
       'cantidad_pasajeros': int.parse(_pasajerosCtrl.text),
       'tipo_combustible_id': _combustibleSel!.id,
       'cantidad_cilindros': int.parse(_bocasCtrl.text),
@@ -243,7 +247,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<BusModelo>(
-                      value:
+                      initialValue:
                           _modeloSel,
                       hint: const Text('Seleccione Modelo'),
                       decoration: _deco(
@@ -264,8 +268,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     const SizedBox(height: 20),
                     _buildSectionTitle('Combustible y Rendimiento'),
                     DropdownButtonFormField<BusTipoCombustible>(
-                      value:
-                          _combustibleSel,
+                      initialValue: _combustibleSel,
                       hint: const Text('Tipo de Combustible'),
                       decoration: _deco(
                         'Combustible',
@@ -312,16 +315,33 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
 
-                    TextFormField(
-                      controller: _bocasCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: _deco(
-                        'Cilindros',
-                        Icons.engineering_outlined,
-                      ),
-                      validator: (val) => val!.isEmpty ? 'Requerido' : null,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _pesoCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: _deco('Peso del Vehiculo', Icons.scale),
+                            validator: (val) =>
+                                val!.isEmpty ? 'Requerido' : null,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _bocasCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: _deco(
+                              'Cilindros',
+                              Icons.engineering_outlined,
+                            ),
+                            validator: (val) =>
+                                val!.isEmpty ? 'Requerido' : null,
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 20),
@@ -355,12 +375,8 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     const SizedBox(height: 12),
 
                     DropdownButtonFormField<int>(
-                      value:
-                          _sedeSelId,
-                      decoration: _deco(
-                        'Sede',
-                        Icons.business_outlined,
-                      ),
+                      initialValue: _sedeSelId,
+                      decoration: _deco('Sede', Icons.business_outlined),
                       items: widget.sedes
                           .map(
                             (s) => DropdownMenuItem(
@@ -373,8 +389,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value:
-                          _estadoSel,
+                      initialValue: _estadoSel,
                       decoration: _deco(
                         'Estado Inicial',
                         Icons.traffic_outlined,

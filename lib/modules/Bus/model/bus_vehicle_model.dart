@@ -6,6 +6,7 @@ class BusVehiculo {
   final String marcaNombre;
   final int anio;
   final String color;
+  final int peso;
   final int cantidadPasajeros;
   final int tipoCombustibleId;
   final String combustibleNombre;
@@ -28,6 +29,7 @@ class BusVehiculo {
     required this.marcaNombre,
     required this.anio,
     required this.color,
+    required this.peso,
     required this.cantidadPasajeros,
     required this.tipoCombustibleId,
     required this.combustibleNombre,
@@ -69,6 +71,7 @@ class BusVehiculo {
           '',
       anio: toInt(j['anio']),
       color: j['color'] as String? ?? '',
+      peso: toInt(j['peso']),
       cantidadPasajeros: toInt(j['cantidad_pasajeros']),
       tipoCombustibleId: toInt(j['tipo_combustible_id']),
       combustibleNombre:
@@ -93,6 +96,7 @@ class BusVehiculo {
     String? marcaNombre,
     int? anio,
     String? color,
+    int? peso,
     int? cantidadPasajeros,
     int? tipoCombustibleId,
     String? combustibleNombre,
@@ -114,6 +118,7 @@ class BusVehiculo {
       marcaNombre: marcaNombre ?? this.marcaNombre,
       anio: anio ?? this.anio,
       color: color ?? this.color,
+      peso: peso ?? this.peso,
       cantidadPasajeros: cantidadPasajeros ?? this.cantidadPasajeros,
       tipoCombustibleId: tipoCombustibleId ?? this.tipoCombustibleId,
       combustibleNombre: combustibleNombre ?? this.combustibleNombre,
