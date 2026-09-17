@@ -208,17 +208,6 @@ class _BusVehicleScreenState extends State<BusVehicleScreen> {
 
     return Scaffold(
       backgroundColor: bg,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'fab_bus_vehiculo',
-        onPressed: () => _crearOEditar(),
-        backgroundColor: _red,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_road_rounded),
-        label: const Text(
-          'Nuevo Vehículo',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-      ),
       body: Column(
         children: [
           Container(

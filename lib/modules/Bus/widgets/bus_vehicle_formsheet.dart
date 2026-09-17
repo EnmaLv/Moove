@@ -174,11 +174,6 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              _esEditar ? 'Editar Vehículo' : 'Nuevo Vehículo',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
             const SizedBox(height: 16),
 
             Expanded(
@@ -328,7 +323,7 @@ class _VehicleFormSheetState extends State<VehicleFormSheet> {
                                 val!.isEmpty ? 'Requerido' : null,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: TextFormField(
                             controller: _bocasCtrl,
