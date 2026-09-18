@@ -8,8 +8,12 @@ import '../../../services/sync_service.dart';
 class TrackingService {
   StreamSubscription<Position>? _positionStream;
   StreamSubscription<DocumentSnapshot>? _docSubscription;
+  Timer? _heartbeatTimer;
+
   DateTime? _ultimaActualizacion;
   DateTime? get ultimaActualizacion => _ultimaActualizacion;
+
+  Position? _ultimaPosicionConocida;
 
   final CollectionReference _busesRef = FirebaseFirestore.instance.collection(
     'buses_activos',
@@ -67,50 +71,75 @@ class TrackingService {
     });
 
     _positionStream?.cancel();
+    _heartbeatTimer?.cancel();
+    
     _ultimaActualizacion = DateTime.now();
-    _positionStream =
-        Geolocator.getPositionStream(
-          locationSettings: locationSettings,
-        ).listen((Position position) async {
-          _ultimaActualizacion = DateTime.now();
-          final speedKmh = position.speed * 3.6;
 
-          // 1. Guardar en cola local con la estructura EXACTA que valida Laravel
-          await SyncService.instance.enqueue(
-            type: 'gps',
-            endpoint: '/viajes/$viajeId/gps',
-            payload: {
-              'local_id': const Uuid()
-                  .v4(), // Requerido por la validación de Laravel
-              'lat': position.latitude,
-              'lng': position.longitude,
-              'velocidad': speedKmh,
-              'heading': position.heading,
-              'timestamp': DateTime.now()
-                  .toUtc()
-                  .toIso8601String(), // Campo OBLIGATORIO por Laravel
-            },
-          );
+    _positionStream = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen((Position position) async {
+      _ultimaPosicionConocida = position;
+      _ultimaActualizacion = DateTime.now();
 
-          // 2. Intentar vaciar cola sin congelar la ejecución del stream
-          SyncService.instance.flush();
+      await _procesarYEnviarPunto(
+        viajeId: viajeId,
+        position: position,
+        velocidadKmh: position.speed * 3.6,
+        onPositionChanged: onPositionChanged,
+      );
+    });
 
-          // 3. Notificar a la interfaz la nueva posición local inmediatamente
-          onPositionChanged(position);
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (_ultimaActualizacion == null || _ultimaPosicionConocida == null) return;
 
-          _busesRef
-              .doc(viajeId)
-              .set({
-                'latitud': position.latitude,
-                'longitud': position.longitude,
-                'en_movimiento': position.speed > 0.5,
-                'heading': position.heading,
-                'ultima_actualizacion': FieldValue.serverTimestamp(),
-              }, SetOptions(merge: true))
-              .catchError((error) {
-                debugPrint("Error Firestore: $error");
-              });
-        });
+      final segundosSinMovimiento =
+          DateTime.now().difference(_ultimaActualizacion!).inSeconds;
+
+      if (segundosSinMovimiento >= 15) {
+        _ultimaActualizacion = DateTime.now();
+
+        await _procesarYEnviarPunto(
+          viajeId: viajeId,
+          position: _ultimaPosicionConocida!,
+          velocidadKmh: 0.0,
+          onPositionChanged: onPositionChanged,
+        );
+      }
+    });
+  }
+
+  Future<void> _procesarYEnviarPunto({
+    required String viajeId,
+    required Position position,
+    required double velocidadKmh,
+    required Function(Position pos) onPositionChanged,
+  }) async {
+    await SyncService.instance.enqueue(
+      type: 'gps',
+      endpoint: '/viajes/$viajeId/gps',
+      payload: {
+        'local_id': const Uuid().v4(),
+        'lat': position.latitude,
+        'lng': position.longitude,
+        'velocidad': velocidadKmh,
+        'heading': position.heading,
+        'timestamp': DateTime.now().toUtc().toIso8601String(),
+      },
+    );
+
+    SyncService.instance.flush();
+
+    onPositionChanged(position);
+
+    _busesRef.doc(viajeId).set({
+      'latitud': position.latitude,
+      'longitud': position.longitude,
+      'en_movimiento': velocidadKmh > 0.5,
+      'heading': position.heading,
+      'ultima_actualizacion': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)).catchError((error) {
+      debugPrint("Error Firestore: $error");
+    });
   }
 
   Future<void> detenerTracking(String? viajeId) async {
@@ -119,7 +148,12 @@ class TrackingService {
 
     await _positionStream?.cancel();
     _positionStream = null;
+
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+
     _ultimaActualizacion = null;
+    _ultimaPosicionConocida = null;
 
     if (viajeId != null && viajeId.isNotEmpty) {
       try {
