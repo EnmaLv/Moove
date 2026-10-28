@@ -38,20 +38,35 @@ class BusEnMapa {
     );
   }
 
-  factory BusEnMapa.fromJson(Map<String, dynamic> json) { 
-    final vehiculo = json['vehiculo'] ?? {};
-    final ruta = json['bus_ruta'] ?? json['ruta'] ?? {};
-    final lat = (json['latitud'] ?? 0.0) as num;
-    final lng = (json['longitud'] ?? 0.0) as num;
+  factory BusEnMapa.fromJson(Map<String, dynamic> json) {
+    final vehiculo = (json['vehiculo'] ?? json['vehiculo_transporte'] ?? {})
+        as Map<String, dynamic>;
+    final ruta = (json['bus_ruta'] ??
+            json['ruta_transporte'] ??
+            json['ruta'] ??
+            {}) as Map<String, dynamic>;
+
+    final rawLat = json['latitud'] ?? json['lat'] ?? json['lat_lgt'] ?? 0.0;
+    final rawLng = json['longitud'] ?? json['lng'] ?? json['lng_lgt'] ?? 0.0;
 
     return BusEnMapa(
-      id: json['id']?.toString() ?? '',
-      placa: vehiculo['placa']?.toString() ?? 'S/N',
-      rutaNombre: ruta['nombre']?.toString() ?? 'Ruta Genérica',
-      posicion: LatLng(lat.toDouble(), lng.toDouble()),
-      enMovimiento: json['estado'] == 'en_curso',
-      pasajeros: (json['pasajeros'] ?? 0) as int,
-      sede: vehiculo['sede']?.toString() ?? 'UPTP',
+      id: (json['id'] ?? json['id_vjt'] ?? '').toString(),
+      placa: (vehiculo['placa'] ?? vehiculo['placa_vtr'] ?? 'S/N').toString(),
+      rutaNombre:
+          (ruta['nombre'] ?? ruta['nombre_rtr'] ?? 'Ruta Genérica').toString(),
+      posicion: LatLng(
+        (rawLat as num).toDouble(),
+        (rawLng as num).toDouble(),
+      ),
+      enMovimiento: (json['estado'] ??
+              json['estado_viaje'] ??
+              json['estado_viaje_vjt']) ==
+          'en_curso',
+      pasajeros: (json['pasajeros'] ??
+              json['total_pasajeros'] ??
+              json['total_pasajeros_vjt'] ??
+              0) as int,
+      sede: (vehiculo['sede'] ?? 'UPTP').toString(),
     );
   }
 }

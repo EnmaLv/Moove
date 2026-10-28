@@ -14,11 +14,19 @@ class ResultadoAsistencia {
   });
 
   factory ResultadoAsistencia.fromJson(Map<String, dynamic> json) {
+    final data = (json['data'] ?? {}) as Map<String, dynamic>;
+
     return ResultadoAsistencia(
       exito: json['success'] == true,
       mensaje: json['message']?.toString() ?? '',
-      nombre: json['data']?['nombre']?.toString(),
-      pasajerosTotal: json['data']?['pasajeros_total'] as int?,
+      nombre: (data['nombre'] ??
+              data['nombre_per'] ??
+              data['nombres_per'] ??
+              data['nombre_persona'])
+          ?.toString(),
+      pasajerosTotal: (data['pasajeros_total'] ??
+              data['total_pasajeros'] ??
+              data['total_pasajeros_vjt']) as int?,
       yaRegistrado: json['code'] == 'YA_REGISTRADO',
     );
   }

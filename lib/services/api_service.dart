@@ -39,7 +39,7 @@ class ApiService {
   };
 
   static Future<Map<String, dynamic>> login(
-    String email,
+    String identifier,
     String password,
   ) async {
     try {
@@ -50,7 +50,9 @@ class ApiService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode({'email': email, 'password': password}),
+            // El backend sigue esperando el campo "email";
+            // internamente valida si es correo o cédula.
+            body: jsonEncode({'email': identifier, 'password': password}),
           )
           .timeout(const Duration(seconds: 15));
 

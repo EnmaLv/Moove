@@ -48,23 +48,21 @@ class _BusModeloScreenState extends State<BusModeloScreen> {
     }
   }
 
-  Future<void> _cargar() async {
+    Future<void> _cargar() async {
     if (!mounted) return;
     setState(() {
       _cargando = true;
       _error = null;
     });
     try {
-      final results = await Future.wait([
-        BusModeloService.getAll(),
-        BusModeloService.getMarcas(),
-      ]);
+      // ✅ SOLUCIÓN: Evitamos Future.wait para no perder los tipos en Flutter Web
+      final modelos = await BusModeloService.getAll();
+      final marcas = await BusModeloService.getMarcas();
 
       if (!mounted) return;
 
       setState(() {
-        _modelos = results[0] as List<BusModelo>;
-        final marcas = results[1] as List<BusMarca>;
+        _modelos = modelos;
         _marcas = marcas.where((m) => m.estado).toList();
       });
 

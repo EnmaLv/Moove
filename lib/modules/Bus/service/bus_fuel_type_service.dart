@@ -8,7 +8,7 @@ class BusTipoCombustibleService {
     final res = await ApiService.get(_base);
     if (res['success'] == true) {
       return (res['data'] as List)
-          .map((j) => BusTipoCombustible.fromJson(j as Map<String, dynamic>))
+          .map((j) => BusTipoCombustible.fromJson(Map<String, dynamic>.from(j as Map)))
           .toList();
     }
     throw Exception(res['message'] ?? 'Error al cargar combustibles.');
@@ -19,7 +19,9 @@ class BusTipoCombustibleService {
       'nombre': nombre,
       'descripcion': descripcion,
     });
-    if (res['success'] == true) return BusTipoCombustible.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusTipoCombustible.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al crear tipo de combustible.');
   }
 
@@ -28,7 +30,9 @@ class BusTipoCombustibleService {
       'nombre': nombre,
       'descripcion': descripcion,
     });
-    if (res['success'] == true) return BusTipoCombustible.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusTipoCombustible.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al actualizar tipo de combustible.');
   }
 

@@ -1,3 +1,4 @@
+// login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/api_service.dart';
@@ -6,7 +7,6 @@ import '../../widgets/app_bar.dart';
 
 class LoginScreen extends StatefulWidget {
   final AppThemeProvider themeProvider;
-
   const LoginScreen({super.key, required this.themeProvider});
 
   @override
@@ -17,7 +17,8 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   static const colorRed = Color(0xFFB71C1C);
 
-  final _emailCtrl = TextEditingController();
+  // Ahora es "identificador" porque puede ser correo o cédula
+  final _identifierCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
@@ -45,16 +46,16 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _animCtrl.dispose();
-    _emailCtrl.dispose();
+    _identifierCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailCtrl.text.trim();
+    final identifier = _identifierCtrl.text.trim();
     final password = _passwordCtrl.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (identifier.isEmpty || password.isEmpty) {
       setState(() => _error = 'Por favor completa todos los campos.');
       return;
     }
@@ -64,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen>
       _error = null;
     });
 
-    final result = await ApiService.login(email, password);
+    final result = await ApiService.login(identifier, password);
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -91,14 +92,12 @@ class _LoginScreenState extends State<LoginScreen>
       listenable: widget.themeProvider,
       builder: (context, _) {
         final isDark = widget.themeProvider.isDark;
-        final colorBg = isDark
-            ? const Color(0xFF121212)
-            : const Color(0xFFF5F5F5);
+        final colorBg =
+            isDark ? const Color(0xFF121212) : const Color(0xFFF5F5F5);
         final colorCardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
         final colorText = isDark ? Colors.white : const Color(0xFF1A1A1A);
-        final colorSubtext = isDark
-            ? const Color(0xFF888888)
-            : const Color(0xFF666666);
+        final colorSubtext =
+            isDark ? const Color(0xFF888888) : const Color(0xFF666666);
 
         final size = MediaQuery.of(context).size;
         final isWide = size.width > 768;
@@ -109,19 +108,13 @@ class _LoginScreenState extends State<LoginScreen>
             child: Stack(
               children: [
                 isWide
-                    ? _buildWideLayout(
-                        colorCardBg,
-                        colorText,
-                        colorSubtext,
-                        isDark,
-                      )
+                    ? _buildWideLayout(colorCardBg, colorText, colorSubtext, isDark)
                     : Center(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(24),
                           child: _buildCard(colorText, colorSubtext, isDark),
                         ),
                       ),
-
                 Positioned(
                   top: 16,
                   right: 20,
@@ -139,11 +132,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Widget _buildWideLayout(
-    Color cardBg,
-    Color txtCol,
-    Color subTxtCol,
-    bool isDark,
-  ) {
+      Color cardBg, Color txtCol, Color subTxtCol, bool isDark) {
     return Row(
       children: [
         Expanded(
@@ -163,9 +152,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildCard(Color txtCol, Color subTxtCol, bool isDark) {
     final errBg = isDark ? const Color(0xFF2C1A1A) : const Color(0xFFFFEBEE);
-    final errBorderText = isDark
-        ? const Color(0xFFEF5350)
-        : const Color(0xFFC62828);
+    final errBorderText =
+        isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828);
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -190,9 +178,7 @@ class _LoginScreenState extends State<LoginScreen>
                   color: Colors.white,
                 ),
               ),
-
               const SizedBox(height: 24),
-
               Text(
                 'Bienvenido',
                 style: TextStyle(
@@ -207,10 +193,8 @@ class _LoginScreenState extends State<LoginScreen>
                 style: TextStyle(fontSize: 14, color: subTxtCol),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 28),
 
-              // Alerta de error adaptativa
               if (_error != null) ...[
                 Container(
                   width: double.infinity,
@@ -237,14 +221,15 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 20),
               ],
 
+              // ---------- CAMBIO: correo o cédula ----------
               TextField(
-                controller: _emailCtrl,
-                keyboardType: TextInputType.emailAddress,
+                controller: _identifierCtrl,
+                keyboardType: TextInputType.text, // acepta letras y números
                 textInputAction: TextInputAction.next,
                 decoration: InputDecoration(
-                  labelText: 'Correo electrónico',
-                  hintText: 'Ej: usuario@uptp.edu.ve',
-                  prefixIcon: const Icon(Icons.email_outlined),
+                  labelText: 'Correo o cédula',
+                  hintText: 'Ej: usuario@uptp.edu.ve o V-12345678',
+                  prefixIcon: const Icon(Icons.person_outline_rounded),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -254,7 +239,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
 
               TextField(
@@ -295,11 +279,11 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   child: const Text(
                     '¿Olvidaste tu contraseña?',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
               ),
-
               const SizedBox(height: 12),
 
               SizedBox(
@@ -346,7 +330,8 @@ class _LoginThemeToggle extends StatelessWidget {
   final bool isDark;
   static const _red = Color(0xFFB71C1C);
 
-  const _LoginThemeToggle({required this.themeProvider, required this.isDark});
+  const _LoginThemeToggle(
+      {required this.themeProvider, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -368,20 +353,14 @@ class _LoginThemeToggle extends StatelessWidget {
             const Positioned(
               left: 6,
               top: 5,
-              child: Icon(
-                Icons.nightlight_round,
-                size: 16,
-                color: Colors.white,
-              ),
+              child: Icon(Icons.nightlight_round,
+                  size: 16, color: Colors.white),
             ),
             const Positioned(
               right: 6,
               top: 5,
-              child: Icon(
-                Icons.wb_sunny_rounded,
-                size: 16,
-                color: Color(0xFF999999),
-              ),
+              child: Icon(Icons.wb_sunny_rounded,
+                  size: 16, color: Color(0xFF999999)),
             ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 250),

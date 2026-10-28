@@ -8,20 +8,25 @@ class BusModeloService {
 
   static Future<List<BusModelo>> getAll() async {
     final res = await ApiService.get(_base);
-    if (res['success'] == true) {
-      return (res['data'] as List)
-          .map((j) => BusModelo.fromJson(j as Map<String, dynamic>))
-          .toList();
+    if (res['success'] == true && res['data'] != null) {
+      // Forzamos a que sea una List<dynamic> explícita para que Dart Web no se pierda
+      final List<dynamic> data = res['data'] as List<dynamic>;
+      return data.map((j) {
+        final Map<String, dynamic> json = Map<String, dynamic>.from(j as Map);
+        return BusModelo.fromJson(json);
+      }).toList();
     }
     throw Exception(res['message'] ?? 'Error al cargar modelos.');
   }
 
   static Future<List<BusMarca>> getMarcas() async {
     final res = await ApiService.get('$_marcas?estado=1');
-    if (res['success'] == true) {
-      return (res['data'] as List)
-          .map((j) => BusMarca.fromJson(j as Map<String, dynamic>))
-          .toList();
+    if (res['success'] == true && res['data'] != null) {
+      final List<dynamic> data = res['data'] as List<dynamic>;
+      return data.map((j) {
+        final Map<String, dynamic> json = Map<String, dynamic>.from(j as Map);
+        return BusMarca.fromJson(json);
+      }).toList();
     }
     throw Exception(res['message'] ?? 'Error al cargar marcas.');
   }
@@ -31,7 +36,9 @@ class BusModeloService {
       'marca_id': marcaId,
       'nombre': nombre,
     });
-    if (res['success'] == true) return BusModelo.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusModelo.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al crear modelo.');
   }
 
@@ -40,7 +47,9 @@ class BusModeloService {
       'marca_id': marcaId,
       'nombre': nombre,
     });
-    if (res['success'] == true) return BusModelo.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusModelo.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al actualizar modelo.');
   }
 

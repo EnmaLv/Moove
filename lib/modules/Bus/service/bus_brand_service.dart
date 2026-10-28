@@ -8,7 +8,7 @@ class BusMarcaService {
     final res = await ApiService.get(_base);
     if (res['success'] == true) {
       return (res['data'] as List)
-          .map((j) => BusMarca.fromJson(j as Map<String, dynamic>))
+          .map((j) => BusMarca.fromJson(Map<String, dynamic>.from(j as Map)))
           .toList();
     }
     throw Exception(res['message'] ?? 'Error al cargar marcas.');
@@ -16,13 +16,17 @@ class BusMarcaService {
 
   static Future<BusMarca> create(String nombre) async {
     final res = await ApiService.post(_base, {'nombre': nombre});
-    if (res['success'] == true) return BusMarca.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusMarca.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al crear marca.');
   }
 
   static Future<BusMarca> update(int id, String nombre) async {
     final res = await ApiService.put('$_base/$id', {'nombre': nombre});
-    if (res['success'] == true) return BusMarca.fromJson(res['data']);
+    if (res['success'] == true) {
+      return BusMarca.fromJson(Map<String, dynamic>.from(res['data'] as Map));
+    }
     throw Exception(res['message'] ?? 'Error al actualizar marca.');
   }
 

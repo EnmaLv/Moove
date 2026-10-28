@@ -17,21 +17,46 @@ class BusViaje {
     this.conductorNombre,
   });
 
-  factory BusViaje.fromJson(Map<String, dynamic> j) => BusViaje(
-    id: j['id'] as int,
-    turno: j['turno'] as String?,
-    estado: j['estado'] as String? ?? 'programado',
-    fechaInicio: j['fecha_inicio'] as String?,
-    vehiculoPlaca: j['vehiculo']?['placa'] as String?,
-    rutaNombre: j['bus_ruta']?['nombre'] as String?,
-    conductorNombre:
-        (j['conductor']?['persona']?['nombre_persona'] as String?) ??
-        (j['conductor']?['nombre'] as String?) ??
-        (j['conductor']?['usuario']?['persona']?['nombre_persona']
-            as String?) ??
-        (j['conductor']?['usuario']?['nombre'] as String?),
-  );
+  factory BusViaje.fromJson(Map<String, dynamic> j) {
+    final vehiculo = (j['vehiculo'] ?? j['vehiculo_transporte'] ?? {})
+        as Map<String, dynamic>;
+    final ruta = (j['bus_ruta'] ??
+            j['ruta_transporte'] ??
+            j['ruta'] ??
+            {}) as Map<String, dynamic>;
+    final conductor = (j['conductor'] ?? {}) as Map<String, dynamic>;
+    final persona = (conductor['persona'] ??
+            conductor['usuario']?['persona'] ??
+            {}) as Map<String, dynamic>;
+
+    final rawId = j['id'] ?? j['id_vjt'];
+    final rawTurno = j['turno'] ?? j['turno_vjt'];
+    final rawEstado = j['estado'] ??
+        j['estado_viaje'] ??
+        j['estado_viaje_vjt'] ??
+        'programado';
+    final rawFecha = j['fecha_inicio'] ?? j['fecha_inicio_vjt'];
+    final rawPlaca = vehiculo['placa'] ?? vehiculo['placa_vtr'];
+    final rawRutaNombre = ruta['nombre'] ?? ruta['nombre_rtr'];
+    final rawConductorNombre = persona['nombre_persona'] ??
+        persona['nombres_per'] ??
+        conductor['nombre'] ??
+        conductor['nombre_use'];
+
+    return BusViaje(
+      id: _toInt(rawId),
+      turno: rawTurno?.toString(),
+      estado: rawEstado.toString(),
+      fechaInicio: rawFecha?.toString(),
+      vehiculoPlaca: rawPlaca?.toString(),
+      rutaNombre: rawRutaNombre?.toString(),
+      conductorNombre: rawConductorNombre?.toString(),
+    );
+  }
 
   bool get enCurso => estado == 'en_curso';
   bool get programado => estado == 'programado';
+
+  static int _toInt(dynamic v) =>
+      v is int ? v : int.parse(v?.toString() ?? '0');
 }

@@ -45,47 +45,68 @@ class BusVehiculo {
     required this.estado,
   });
 
-  factory BusVehiculo.fromJson(Map<String, dynamic> j) {
-    double toDouble(dynamic val) {
-      if (val == null) return 0.0;
-      if (val is num) return val.toDouble();
-      if (val is String) return double.tryParse(val) ?? 0.0;
+    factory BusVehiculo.fromJson(Map<String, dynamic> j) {
+    double toDouble(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0.0;
       return 0.0;
     }
 
-    int toInt(dynamic val) {
-      if (val == null) return 0;
-      if (val is num) return val.toInt();
-      if (val is String) return int.tryParse(val) ?? 0;
+    int toInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
       return 0;
     }
 
+    // Conversiones seguras
+    final dynamic rawModelo = j['modelo'] ?? j['modelo_vehiculo'];
+    final Map<String, dynamic> modelo = rawModelo is Map 
+        ? Map<String, dynamic>.from(rawModelo) 
+        : <String, dynamic>{};
+
+    final dynamic rawMarca = modelo['marca'] ?? modelo['marca_vehiculo'];
+    final Map<String, dynamic> marca = rawMarca is Map 
+        ? Map<String, dynamic>.from(rawMarca) 
+        : <String, dynamic>{};
+
+    final dynamic rawTipoComb = j['tipo_combustible'];
+    final Map<String, dynamic> tipoComb = rawTipoComb is Map 
+        ? Map<String, dynamic>.from(rawTipoComb) 
+        : <String, dynamic>{};
+
+    final dynamic rawSede = j['sede'];
+    final Map<String, dynamic> sede = rawSede is Map 
+        ? Map<String, dynamic>.from(rawSede) 
+        : <String, dynamic>{};
+
+    final rawActivo = j['activo'] ?? j['status_id'];
+
     return BusVehiculo(
-      id: toInt(j['id']),
-      placa: j['placa'] as String? ?? '',
-      modeloId: toInt(j['modelo_id']),
-      modeloNombre: j['modelo']?['nombre'] as String? ?? 'Desconocido',
-      marcaNombre:
-          j['modelo']?['marca']?['nombre'] as String? ??
-          j['modelo']?['marca']?['nombre'] as String? ??
-          '',
-      anio: toInt(j['anio']),
-      color: j['color'] as String? ?? '',
-      peso: toInt(j['peso']),
-      cantidadPasajeros: toInt(j['cantidad_pasajeros']),
-      tipoCombustibleId: toInt(j['tipo_combustible_id']),
-      combustibleNombre:
-          j['tipo_combustible']?['nombre'] as String? ?? 'Desconocido',
-      cantidadBocas: toInt(j['cantidad_cilindros']),
-      capacidadTanqueLitros: toDouble(j['capacidad_tanque_litros']),
-      consumoLitrosKm: toDouble(j['consumo_litros_km']),
-      kmActual: toDouble(j['km_actual']),
-      kmProximoMantenimiento: toDouble(j['km_proximo_mantenimiento']),
-      conductorId: j['conductor_id'] != null ? toInt(j['conductor_id']) : null,
-      sedeId: toInt(j['sede_id']),
-      sedeNombre: j['sede']?['nombre'] as String? ?? 'Matriz',
-      activo: j['activo'] == true || j['activo'] == 1,
-      estado: j['estado'] as String? ?? 'disponible',
+      id: toInt(j['id'] ?? j['id_vtr']),
+      placa: (j['placa'] ?? j['placa_vtr'] ?? '').toString(),
+      modeloId: toInt(j['modelo_id'] ?? j['mov_id'] ?? modelo['id'] ?? modelo['id_mov']),
+      modeloNombre: (modelo['nombre'] ?? modelo['nombre_mov'] ?? 'Desconocido').toString(),
+      marcaNombre: (marca['nombre'] ?? marca['nombre_mav'] ?? '').toString(),
+      anio: toInt(j['anio'] ?? j['anio_vtr']),
+      color: (j['color'] ?? j['color_vtr'] ?? '').toString(),
+      peso: toInt(j['peso'] ?? j['peso_vtr']),
+      cantidadPasajeros: toInt(j['cantidad_pasajeros'] ?? j['capacidad_pasajeros_vtr']),
+      tipoCombustibleId: toInt(j['tipo_combustible_id'] ?? j['tcb_id'] ?? tipoComb['id'] ?? tipoComb['id_tcb']),
+      combustibleNombre: (tipoComb['nombre'] ?? tipoComb['nombre_tcb'] ?? 'Desconocido').toString(),
+      cantidadBocas: toInt(j['cantidad_cilindros'] ?? j['cantidad_cilindros_vtr']),
+      capacidadTanqueLitros: toDouble(j['capacidad_tanque_litros'] ?? j['capacidad_tanque_litros_vtr']),
+      consumoLitrosKm: toDouble(j['consumo_litros_km'] ?? j['consumo_urbano_vtr']),
+      kmActual: toDouble(j['km_actual'] ?? j['km_actual_vtr']),
+      kmProximoMantenimiento: toDouble(j['km_proximo_mantenimiento'] ?? j['km_proximo_mantenimiento_vtr']),
+      conductorId: (j['conductor_id'] ?? j['conductor_use_id']) != null
+          ? toInt(j['conductor_id'] ?? j['conductor_use_id'])
+          : null,
+      sedeId: toInt(j['sede_id'] ?? j['sed_id'] ?? sede['id'] ?? sede['id_sed']),
+      sedeNombre: (sede['nombre'] ?? sede['nombre_sed'] ?? 'Matriz').toString(),
+      activo: rawActivo == true || rawActivo == 1,
+      estado: (j['estado'] ?? j['estado_operativo_vtr'] ?? 'disponible').toString(),
     );
   }
 
